@@ -596,8 +596,12 @@ const CAGE_MAP = STAGE.CAGE_MAP; // Store all avaibles libary
         iziToast.opened = true;
         document.exitPointerLock();
         iziToast.info( $PME.mapSetupEditor() );
-        console.log('iziToast: ', iziToast);
-    }
+        // show tint colors pickers
+        const JsColor = new JsColor(document.getElementById("color")); // for case:id="_color" slider:id="color"
+        JsColor.zIndex = 9999999;
+      
+    };
+
 
     // open the dataEditor html
     function open_dataEditor(CAGE){
