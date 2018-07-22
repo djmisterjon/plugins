@@ -615,51 +615,46 @@ const CAGE_MAP = STAGE.CAGE_MAP; // Store all avaibles libary
         const _jscolor = new jscolor(document.getElementById("color")); // for case:id="_color" slider:id="color"
         _jscolor.zIndex = 9999999;
         const _Falloff = create_sliderFalloff(); // create slider html for pixiHaven
-      
+        start_mapSetupEditor(_jscolor,_Falloff);
     };
 
-
-    // open the dataEditor html
-    function open_dataEditor(CAGE){
-        EditorOpen = true;
-        close_GuiEditor(), close_tileSheets();
-        const light = typeof CAGE === "string" && { source:create_lightSource(CAGE) };
-        let objSprite;
-        if(!light){ // tile,spine
-            TilesMap.map_d.parentGroup._activeLayer._filters = [$PME.filters[1]];
-            iziT.info(iziT.dataEditor(CAGE)); // id:"dataEditor"
-            objSprite = create_ObjSprite(CAGE.source, false);
-                objSprite.x = Scene_W-(Scene_W/2/2);
-                objSprite.y = Scene_H-(Scene_H/4);
-        }else{ //light
-            iziT.info(iziT.dataEditor_light());
-            createSlider_falloff(); // create slider html for pixiHaven
-            objSprite = create_ObjSprite(light.source, false);
-                objSprite.x = Scene_W/1.5
-                objSprite.y = Scene_H/2;
-        }
-        // create a new preview sprite for help editData (without normal)
-        const cage_Debug = new PIXI.Container(); // related to Cage_Mouse but for editor
-         //attache a new input color module to html tint
-        const jsColor = new jscolor(document.getElementById(!light&&"tint"||"color"));
-            jsColor.keyName = !light&&"tint"||"color";
-            jsColor.zIndex = 9999999;
-        Cage_DataEditor.jsColor = jsColor;
-        // Text title name,type for dataEditor
-        const style = new PIXI.TextStyle({fill:"#ff8000",fontSize:20,letterSpacing:-1,lineJoin:"round",strokeThickness:7});
-        const txt = `(live compute rendering) for ${!light&&CAGE.source.name||light.source.name} Type: ${!light&&CAGE.source.type||light.source.type}`;
-        const txtSprite = new PIXI.Text(txt, style);
-            txtSprite.pivot.set(txtSprite.width/2,txtSprite.height/2)
-            txtSprite.x = Scene_W-(Scene_W/2/2);
-            txtSprite.y = txtSprite.height;
-        if(!light){ // tile,spine
-            cage_Debug.addChild(objSprite.debugElements.lineV, objSprite);
-        }else{
-            cage_Debug.addChild(objSprite);
+// initialise update dataEditor
+    function start_mapSetupEditor(_jscolor,_Falloff){
+        const dataIntepretor = document.getElementById("dataIntepretor"); // current Data html box
+        const buttonsID = ["data_BG"];
+        // ========= DATA LISTENER  ===========
+        // when checkBox changes
+        dataIntepretor.onchange = function(event){ // click on a input checkbox
+            if(event.target.type === "checkbox"){
+                
+            
+            };
+          
         };
-        Cage_DataEditor.addChild(cage_Debug);
-        InObjSprite = objSprite;
-        start_dataEditor(objSprite);
+
+        // ========= control global scene light ===========
+        // JSCOLOR, when change color from color Box
+        _jscolor.onFineChange = function(){
+            const key = Cage_DataEditor.jsColor.keyName;
+            document.getElementById(`_${key}`).checked = true; // force check case
+            refreshSessionWith_html(session);
+            const _reelZoom = document.getElementById('reelZoom').checked;
+            refreshSpriteWith_session(objSprite,session,[_reelZoom]);
+        };
+        // Bootstrape sliders, when change value
+        _Falloff.kc.on("slide", function(value) {
+            refreshSessionWith_html(session,"falloff", value, 0);
+            refreshSpriteWith_session(objSprite,session,[_reelZoom]);
+        });
+        _Falloff.kl.on("slide", function(value) {
+            refreshSessionWith_html(session,"falloff", value, 1);
+            refreshSpriteWith_session(objSprite,session,[_reelZoom]);
+            
+        });
+        _Falloff.kq.on("slide", function(value) {
+            refreshSessionWith_html(session,"falloff", value, 2);
+            refreshSpriteWith_session(objSprite,session,[_reelZoom]);
+        });
     };
 //#endregion
 
