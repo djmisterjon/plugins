@@ -24,11 +24,13 @@ function initializeEditor(event){
                 "js/iziToast/iziToast.js",
                 "js/iziToast/pixiMapEditor_HTML.js",
                 "js/iziToast/pixiMapEditor_TOAST.js",
+                "js/jscolor/bootstrap-slider.js",
                 "js/jscolor/jscolor.js",
             ];
             const css = [
                 'js/iziToast/iziToast.css',
                 "js/iziToast/bootstrap.min.css",
+                "js/jscolor/bootstrap-slider.css",
                 "editor/customEditorCSS.css",
             ];
             function onComplette(){
@@ -592,13 +594,27 @@ const CAGE_MAP = STAGE.CAGE_MAP; // Store all avaibles libary
     // ┌------------------------------------------------------------------------------┐
     // IZITOAST DATA EDITOR 
     // └------------------------------------------------------------------------------┘
+    // create multi sliders light
+    function create_sliderFalloff(){
+        const kc = new Slider("#kc", {  step: 0.01,value:0, min: 0.01, max: 1, tooltip: false });
+        kc.tooltip.style.opacity = 0.5;
+
+        const kl = new Slider("#kl", {step: 0.1,value:0, min: 0.1, max: 20, tooltip: 'always'});
+        kl.tooltip.style.opacity = 0.5;
+
+        const kq = new Slider("#kq", {step: 0.01,value:0, min: 0.1, max: 50, tooltip: 'always'});
+        kq.tooltip.style.opacity = 0.5;
+        return {kc:kc,kl:kl,kq:kq};
+    };
+
     function open_mapSetupEditor() {
         iziToast.opened = true;
         document.exitPointerLock();
         iziToast.info( $PME.mapSetupEditor() );
         // show tint colors pickers
-        const JsColor = new JsColor(document.getElementById("color")); // for case:id="_color" slider:id="color"
-        JsColor.zIndex = 9999999;
+        const _jscolor = new jscolor(document.getElementById("color")); // for case:id="_color" slider:id="color"
+        _jscolor.zIndex = 9999999;
+        const _Falloff = create_sliderFalloff(); // create slider html for pixiHaven
       
     };
 
@@ -1138,7 +1154,7 @@ const CAGE_MAP = STAGE.CAGE_MAP; // Store all avaibles libary
     };
 
     function mouseup_Editor(event) {
-        if(iziToast.opened){return}; // dont use mouse when toast editor
+        if(iziToast.opened){return  document.exitPointerLock()}; // dont use mouse when toast editor
         const _clickRight = event.button === 0;
         const clickLeft_ = event.button === 2;
         const click_Middle = event.button === 1;
