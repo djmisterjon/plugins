@@ -148,7 +148,7 @@ _PME.prototype.startEditorLoader = function() { // load all sprites dependency f
                 if(!(fileData.dirArray.indexOf("SOURCE")>-1 || fileData.dirArray.indexOf("source")>-1)){ // (exlude all json in source folder)
                     let fileDataFromJson = JSON.parse(fs.readFileSync(filename, 'utf8')); // read the json
                     // it spine , spine no have meta , build it (check meta model in texturepacker)
-                    if(!fileDataFromJson.meta){ 
+                    if(!fileDataFromJson.meta){
                         fileDataFromJson.meta = {
                             type:"spineSheet",
                             normal:false, // TODO: check if we have normal skins ?
@@ -168,7 +168,8 @@ _PME.prototype.startEditorLoader = function() { // load all sprites dependency f
                             fileDataFromJson.meta.isBG = true;
                         }
                     };
-                    fileData.meta = fileDataFromJson.meta;
+                    Object.defineProperty(fileData, "meta", { value: fileDataFromJson.meta ,writable:true });
+                 
                     
                     // check multi pack
                     if(/-\d*$/.test(fileData.name)) {
