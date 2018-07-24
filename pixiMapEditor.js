@@ -100,29 +100,22 @@ class _PME{
 // ┌------------------------------------------------------------------------------┐
 // wait JSONlibraryLoader befor initialise pixiMapEditor
 //└------------------------------------------------------------------------------┘
-_PME.prototype.initializeTOAST = function() { // load all sprites dependency for editor gui only
+_PME.prototype.initializeTOAST = function() {
     iziToast.warning( this.izit_loading1() );
 };
 
 
-_PME.prototype.startEditorLoader = function() { // load all sprites dependency for editor gui only
+_PME.prototype.startEditorLoader = function() { 
     const loader = new PIXI.loaders.Loader();
-    loader
-    .add('editorGui', `editor/pixiMapEditor1.json`)
+    loader.add('editorGui', `editor/pixiMapEditor1.json`);
     loader.load();
 
     loader.onProgress.add((loader, res) => {
-        if (res.extension === "png") {
-            this.editor[res.name] = res.texture;
-        }
-        if (res.spineData) {
-            this.editor[res.name] = res.spineData;
-        }
+        if (res.extension === "png") { this.editor[res.name] = res.texture};
+        if (res.spineData) { this.editor[res.name] = res.spineData};
     });
-
-    loader.onComplete.add(() => { 
+    loader.onComplete.add(() => {
         this.load_nwJSFolderLibs();
-        //this.startGui();
     });
  };
 
@@ -193,6 +186,7 @@ _PME.prototype.startEditorLoader = function() { // load all sprites dependency f
 
  // start load all json data
  _PME.prototype.loadDataJson = function() {
+     return;
     PIXI.utils.clearTextureCache(); // clear all cache avoid error
     const loader = new PIXI.loaders.Loader();
     for (const key in this._avaibleData) {
