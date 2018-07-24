@@ -45,7 +45,7 @@ _mouse.prototype.initialize = function() {
 //$mouse.createSprites();
 //create the sprite spine mouse and default animations
 _mouse.prototype.create_Sprites = function() {
-    const mouse = new PIXI.spine.Spine($Loader.data2.Miscs.gloves._spineData);
+    const mouse = new PIXI.spine.Spine($Loader.Data2.gloves.spineData);
     // setup
     mouse.skeleton.setSkinByName("point");
     mouse.state.setAnimation(0, 'idle', true);

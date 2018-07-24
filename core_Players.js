@@ -21,7 +21,7 @@ function _player() {
     this._width = null;
     this._height = null;
     this.inCase = null;
-}
+} 
 
 $player = new _player(); // create game player
 console.log1('$player.', $player);

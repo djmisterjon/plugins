@@ -24,6 +24,8 @@ loaderSet_GalaxiScene:[dataMapJson,mapSprites(diff,norm)]
 
 class _coreLoader {
     constructor () {
+        this._tmp = {}; // tmp, when loading , sore all sheet here before start Normalize structure.
+        this.Data2 = {};
         this._scene = null; // asign the current sceneLoader
         this.isLoading = false; // loading status
         this.loaderSet = {}; // sloaderSet from JSONlIST =>.json ***
@@ -33,11 +35,12 @@ class _coreLoader {
                 value: {
                     MapInfos:"data/MapInfos.json", // also load all maps Map###_data.json and create galaxi register
                     Perma:"data/perma.json", // perma , Enemies,cursor,loader,Avatar...
+                    //Scene_Local_data:"data/Scene_Local_data.json",
                     Scene_IntroVideo:"data/Scene_IntroVideo.json",
-                   /* Scene_Boot:"data/Scene_Boot.json",
+                    Scene_Boot:"data/Scene_Boot.json",
                     Scene_IntroVideo:"data/Scene_IntroVideo.json",
-                    Scene_Local:"data/Scene_Local.json",
-                    Scene_Title:"data/Scene_Title.json",*/
+                    Scene_Local_data:"data/Scene_Local_data.json",
+                    Scene_Title:"data/Scene_Title.json",
                 },
             }
           });
@@ -147,33 +150,129 @@ _coreLoader.prototype.preLoad_Json = function() {
 //└------------------------------------------------------------------------------┘
 // $Loader.load(['loaderSet',loaderSet]);
 _coreLoader.prototype.load = function(set) {
-    console.log6('set: ', set);
+    console.log6('_________________________________set: ', set);
     const loader = new PIXI.loaders.Loader();
-    for (const key in this.loaderSet[set]) {
-        const data = this.loaderSet[set][key];
+    for (const key in this.loaderSet[set].SHEETS) { // L:SHEETS
+        const data = this.loaderSet[set].SHEETS[key];
         loader.add(key, `${data.dir}/${data.base}`);
-        loader.resources[key].dataSet = data;
+        loader.resources[key].dataJ = data;
+        if(data.meta.normal){
+            loader.add(key+"_n", `${data.dir}/${data.name}_n.json`);
+            loader.resources[key+"_n"].dataJ =  data;
+           
+        };
     };
 
     loader.onProgress.add((loader, res) => {
-        console.log('res: ', res);
-        if(!res.dataSet){return}; // jump atlas ...
-        const path = [res.dataSet.dirArray[0],res.dataSet.dirArray[1],res.name]
-        const register = this.checkRegistryPathIntegrity(path);
-        
-        if (res.dataSet.meta.type === "spineSheet") { 
-            register._spineData = res.spineData;
+
+        if(res.dataJ){
+            const isNormal = res.name.contains("_n");
+            const type = res.dataJ.meta.type || false;
+            //const reg = this.checkRegistryPathIntegrity(res.dataJ);
+            if(type){ // avoid use altlas .. and other files
+                if(type === "spineSheet"){
+                    Object.defineProperty(res.dataJ, "spineData", { value: res.spineData, writable:true });
+                };
+                if(type === "animationSheet"){ // use temp_
+                    Object.defineProperty(res.dataJ, "textures", { value: {} ,writable:true });
+                    Object.defineProperty(res.dataJ, "textures_n", { value: {} ,writable:true });
+                    for (const aniKey in res.dataJ.animations) {
+                        res.dataJ.textures[aniKey] = [];
+                        res.dataJ.textures_n[aniKey] = [];
+                    };
+                    res.dataJ._tempTextures = res.textures; // temporaire textures, attend d'etre classer pour Multipack ou animation
+                    res.dataJ._tempTextures_n = {}; // temporaire textures, attend d'etre classer pour Multipack ou animation
+                };
+                if(type === "tileSheet"){
+                    if(isNormal){
+                        Object.defineProperty(res.dataJ, "textures_n", { value: {} ,writable:true });
+                        res.dataJ._tempTextures_n = res.textures; // temporaire textures, attend d'etre classer pour Multipack ou animation
+                    }else{
+                        Object.defineProperty(res.dataJ, "textures", { value: {} ,writable:true });
+                        res.dataJ._tempTextures = res.textures; // temporaire textures, attend d'etre classer pour Multipack ou animation
+                    }; 
+                }
+                this._tmp[res.name] = res.dataJ;
+            };
+            
         };
     });
 
     loader.onComplete.add((loader, res) => {
     // INITALISE BASIC CORE PLUGINS
+        this.combineNormalData();
+        //this.combineMultiPack();
+        this.combineTextures(); // reduce _tempTextures to texture for animation Multi pack
+        this.mergeDataTmp();
+
+
         PIXI.utils.clearTextureCache();
         this._scene.isLoading = false;
     });
 
     loader.load();
 };
+
+  // trouve tous les datas avec _n  et merge avec original data (fusion) ++
+  _coreLoader.prototype.combineNormalData = function() {
+    for (const key in this._tmp) {
+        if(key.contains("_n")){ // it a normal sheets
+            const currentData = this._tmp[key];
+            const targetData =  this._tmp[key.replace("_n", "")];
+            Object.assign(targetData._tempTextures_n, currentData.textures_n); 
+            targetData.meta.normal = true;
+            targetData.base_n = this._tmp[key].base;
+            delete this._tmp[key];
+        };
+    };
+ };
+
+ _coreLoader.prototype.combineTextures = function() {
+    for (const key in this._tmp) {
+        const data = this._tmp[key];
+        if(data.meta.type !== "spineSheet"){
+             // if is animations sheets, need splits all aniamtions from pack
+            if(data.animations){
+                Object.entries(data.animations).forEach(e => {
+                    const animationName = e[0];
+                    const texturesList = e[1];
+                    const temp = [], temp_n = [];
+                    texturesList.forEach(texName => {
+                        const texture = data._tempTextures[texName];
+                        const texture_n = data._tempTextures_n[texName+"_n"];
+                        const storage = data.textures[animationName];
+                        const storage_n = data.textures_n[animationName];
+                        storage.push(texture);
+                        storage_n && storage_n.push(texture_n); // if normal
+                    });
+                });
+            }else{
+                if(data.meta.isBG){
+                    const singleTexName = Object.keys(data._tempTextures)[0];
+                    const singleTexName_n = Object.keys(data._tempTextures_n)[0]
+                    data.textures =  data._tempTextures[singleTexName];
+                    data.textures_n =  data._tempTextures_n[singleTexName_n];
+                }else{
+                    // is tileSheets without aniamtions
+                    data.textures =  data._tempTextures;
+                    data.textures_n =  data._tempTextures_n;
+                }
+  
+            };
+            delete data._tempTextures;
+            delete data._tempTextures_n;
+        };
+    };
+ };
+
+  // merge temp data in Data2 for avaible use. Only if not existe
+  _coreLoader.prototype.mergeDataTmp = function() {
+    for (const key in this._tmp) {
+        if(!this.Data2[key]){
+            Object.defineProperty(this.Data2, key, { value: this._tmp[key] , enumerable:!this._tmp[key].meta.perma });
+        }
+    };
+ };
 
 _coreLoader.prototype.load_planetData = function(set) { // ["g1","p1"] : ["galaxiID","planetID"]
 // TODO: generer avec l'editeur un json pour la map, pour permet de voir comment gerer le planet loader qui load chaque mapData associer
@@ -214,8 +313,9 @@ _coreLoader.prototype.load_planetData = function(set) { // ["g1","p1"] : ["galax
 };
 
 
-_coreLoader.prototype.checkRegistryPathIntegrity = function(path) { // from [dirArray[0],dirArray[1],dirArray.name]
+_coreLoader.prototype.checkRegistryPathIntegrity = function(data) { // from [dirArray[0],dirArray[1],dirArray.name]
     // check l'integity sur 3 niveau, construire objet auto
+    const path = data.dirArray;
     !this[path[0]] && (this[path[0]] = {});
     !this[path[0]][path[1]] && (this[path[0]][path[1]] = {});
     !this[path[0]][path[1]][path[2]] && (this[path[0]][path[1]][path[2]] = {});

@@ -25,37 +25,38 @@ Scene_Local.prototype.initialize = function(loaderSets,callBackScene,firstTime) 
     this.mY = 0;
     this.currentHoverFlag = null; // when mouse are hover a flag
     this.waitReady = 30; // stabiliser
-  //  this.asignDisplayGroup(); // TODO: METRE DANS DISPLAY CORE AVEC ARG:"SCENE" OUT TYPE
 };
 
 Scene_Local.prototype.create = function() {
-    /*this.createBackground();
-    this.createLocalFlags();
-    this.createTexts();
-    this.createSpineAvatar();*/
+    const dat = $Loader.loaderSet.Scene_Local_data;
+    this.createBackground($Loader.Data2.localBG);
+    //this.createLocalFlags();
+    //this.createTexts();
+    //this.createSpineAvatar();
 };
 
-Scene_Local.prototype.createBackground = function() {
+Scene_Local.prototype.createBackground = function(data) {
+    if(this.Background){
+        this.CAGE_MAP.removeChild(this.Background);
+    };
+
     const cage = new PIXI.Container();
-    const data = $Loader.reg._misc._bg.backgroud; // bg
-    const tex_d = data.texture;
-    const tex_n = data.texture_n;
-    const sprite_d = new PIXI.Sprite(tex_d);
-    const sprite_n = new PIXI.Sprite(tex_n);
+    //const data = _data || $Loader.reg._misc._bg.backgroud; // bg
+    const sprite_d = new PIXI.Sprite(data.textures);
+    const sprite_n = new PIXI.Sprite(data.textures_n);
     // asign group display
     sprite_d.parentGroup = PIXI.lights.diffuseGroup;
     sprite_n.parentGroup = PIXI.lights.normalGroup;
-    //cage.parentGroup = $displayGroup.group[0];
+    cage.parentGroup = $displayGroup.group[0];
+    //cage.zIndex;
     // setup
     cage.name = 'background';
 
     // parenting
     cage.addChild(sprite_d, sprite_n);
-    this.CAGE_MAP.addChild(cage);
+    this.CAGE_MAP.addChild(cage); // at 0 ?
     // reference
-    this.background = cage;
-    
-
+    this.Background = cage;
 };
 
 Scene_Local.prototype.createLocalFlags = function() {

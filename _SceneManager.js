@@ -151,7 +151,9 @@ Scene_Base.prototype.initialize = function() {
     this._fadeDuration = 0;
     this._fadeSprite = null;
     this._imageReservationId = Utils.generateRuntimeId();
-
+    // improtan props
+    this.Background = null;
+    this.SpritesNoEvent = []; // element no interactions
 
     this.asignDisplayGroup();
     this.create_Cages();
@@ -181,7 +183,6 @@ Scene_Base.prototype.create_Cages = function() {
     this.CAGE_MOUSE.name = "CAGE_MOUSE";
     this.CAGE_MAP.name = "CAGE_MAP";
     this.CAGE_GUI.name = "CAGE_GUI";
-    this.CAGE_MAP.BackGround = {d:false,n:false}; // BackGround Map diff,normal
     this.addChild( this.CAGE_MAP, this.CAGE_GUI, this.CAGE_MOUSE);
     $mouse.cursor && this.CAGE_MOUSE.addChild($mouse.cursor);
 };

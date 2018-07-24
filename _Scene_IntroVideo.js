@@ -71,7 +71,7 @@ Scene_IntroVideo.prototype.start = function() {
     //this.startFadeIn(this.fadeSpeed(), false);
 
     //DELETEME TEST HACK
-    SceneManager.goto(Scene_Loader,"Scene_Local",Scene_Local);
+    SceneManager.goto(Scene_Loader,"Scene_Local_data",Scene_Local);
 };
 
 Scene_IntroVideo.prototype.update = function() {

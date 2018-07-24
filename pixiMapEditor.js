@@ -164,6 +164,9 @@ _PME.prototype.startEditorLoader = function() { // load all sprites dependency f
                         }else{
                             fileDataFromJson.meta.type = "tileSheet";
                         }
+                        if(fileData.dirArray.contains("BG")){
+                            fileDataFromJson.meta.isBG = true;
+                        }
                     };
                     fileData.meta = fileDataFromJson.meta;
                     
@@ -244,6 +247,7 @@ _PME.prototype.startEditorLoader = function() { // load all sprites dependency f
             const textures_n = this._avaibleData[key].textures; 
             Object.assign(diffuseData._tempTextures_n, textures_n);
             diffuseData.meta.normal = true;
+            diffuseData.base_n = this._avaibleData[key].base;
             delete this._avaibleData[key];
         };
     };
@@ -295,9 +299,17 @@ _PME.prototype.startEditorLoader = function() { // load all sprites dependency f
                     });
                 });
             }else{
-                // is tileSheets without aniamtions
-                data.textures =  data._tempTextures;
-                data.textures_n =  data._tempTextures_n;
+                if(data.meta.isBG){
+                    const singleTexName = Object.keys(data._tempTextures)[0];
+                    const singleTexName_n = Object.keys(data._tempTextures_n)[0]
+                    data.textures =  data._tempTextures[singleTexName];
+                    data.textures_n =  data._tempTextures_n[singleTexName_n];
+                }else{
+                    // is tileSheets without aniamtions
+                    data.textures =  data._tempTextures;
+                    data.textures_n =  data._tempTextures_n;
+                }
+  
             };
             delete data._tempTextures;
             delete data._tempTextures_n;
@@ -618,18 +630,38 @@ const CAGE_MAP = STAGE.CAGE_MAP; // Store all avaibles libary
         start_mapSetupEditor(_jscolor,_Falloff);
     };
 
-// initialise update dataEditor
+    // for scene setup
     function start_mapSetupEditor(_jscolor,_Falloff){
         const dataIntepretor = document.getElementById("dataIntepretor"); // current Data html box
-        const buttonsID = ["data_BG"];
+        let dataFromID = { 
+      
+        };
+        let checkBoxID = { // store checkBox id and data
+      
+        };
+        let optionsFromID = { // no props, special options case
+      
+        };
+
+        
+        //STEP1: GET NATIVE DATA and store in tmp_DataByID
+        //STEP2: REFRESH HTML WITH NATIVE DATA"
+        //STEP3: CHANGE CURRENT DATA WITH LISTENER"
         // ========= DATA LISTENER  ===========
         // when checkBox changes
-        dataIntepretor.onchange = function(event){ // click on a input checkbox
-            if(event.target.type === "checkbox"){
-                
-            
+        dataIntepretor.onchange = function(event){
+    
+        };
+        dataIntepretor.oninput = function(event){ 
+            const e = event.target;
+            if(!e.id.contains("_")){
+                dataFromID[e.id] = e.value;
             };
-          
+            if(e.id.contains("_")){
+                const e = event.target;
+                checkBoxID[e.id] = e.checked;
+            };
+            refreshWithData(dataFromID,checkBoxID);
         };
 
         // ========= control global scene light ===========
@@ -656,6 +688,33 @@ const CAGE_MAP = STAGE.CAGE_MAP; // Store all avaibles libary
             refreshSpriteWith_session(objSprite,session,[_reelZoom]);
         });
     };
+
+
+    function refreshWithData(dataFromID,checkBoxID) {
+        console.log('dataFromID,checkBoxID: ', dataFromID,checkBoxID);
+        for (const key in dataFromID) {
+            const value = dataFromID[key];
+            const checked = !!checkBoxID[`_${key}`];
+            if(key==="BackGround"){
+                if(checked && value){
+                    if(STAGE.Background){
+                        STAGE.CAGE_MAP.removeChild(STAGE.Background);
+                        STAGE.Background = null;
+                    };
+                    STAGE.createBackground($PME._avaibleData[value]);
+                    STAGE.Background.Data = $PME._avaibleData[value];
+
+                }else{
+                    if(STAGE.Background){
+                        STAGE.CAGE_MAP.removeChild(STAGE.Background);
+                        STAGE.Background = null;
+                    };
+                }
+            }
+        }
+    }
+
+
 //#endregion
 
     //#region [rgba(40, 5, 50,0.2)]
@@ -816,15 +875,15 @@ const CAGE_MAP = STAGE.CAGE_MAP; // Store all avaibles libary
             return {bg:bg, an:anchorPoint}; 
         };
         if(type === "spineSheet"){
-            const background = new PIXI.Sprite(PIXI.Texture.WHITE);
+            const bg = new PIXI.Sprite(PIXI.Texture.WHITE);
             const anchorPoint = new PIXI.Sprite(PIXI.Texture.WHITE);
             anchorPoint.tint = 0xee5000;
             anchorPoint.width = 24, anchorPoint.height = 24;
             anchorPoint.anchor.set(0.5,0.5);
-            background.width = sprites.s.width; // TODO:  from zoomer
-            background.height =  sprites.s.height;
-            background.getBounds(); // for help anchorPoint
-            return {bg:background, an:anchorPoint}; 
+            bg.width = sprites.s.width; // TODO:  from zoomer
+            bg.height =  sprites.s.height;
+            bg.getBounds(); // for help anchorPoint
+            return {bg:bg, an:anchorPoint}; 
         };
     };
 
@@ -1227,7 +1286,6 @@ const CAGE_MAP = STAGE.CAGE_MAP; // Store all avaibles libary
     };
 
     function keydown_Editor(event) {
-        if(iziToast.opened){return}; // dont use mouse when toast editor
         if (event.ctrlKey && (event.key === "s" || event.key === "S")) {
             // start save Data
             start_DataSaves();
@@ -1308,17 +1366,19 @@ const CAGE_MAP = STAGE.CAGE_MAP; // Store all avaibles libary
 
     function start_DataSaves(options) {
         create_JsonPerma();
-       // create_JsonMapData();
+        create_SceneJSON();
+        //create_JsonMapData();
        // snapScreenMap();
     };
 
     function create_JsonPerma(options) {
-        // create perma json for loader
-        const data = {};
+        // create perma json for loader,update from loader: les perma sont defenie dans 
+        // file:///C:\Users\jonle\Documents\Games\anft_1.6.1\js\plugins\core_Loader.js#L45
+        const data = {SHEETS:{}};
         for (const key in $PME._avaibleData) {
             const e = $PME._avaibleData[key];
             if(e.meta.perma){
-                data[e.name] = e;
+                data.SHEETS[e.name] = e;
             };
         };
         const fs = require('fs');
@@ -1328,7 +1388,31 @@ const CAGE_MAP = STAGE.CAGE_MAP; // Store all avaibles libary
         });
     };
 
+    // creer la list des data nessesaire
+    function create_SceneJSON(options) {
+        const currentScene = STAGE.constructor.name;
+        const data = {
+            SHEETS:{},
+            OBJS:[],
+            BG:null,
+        };
+        if(STAGE.Background){
+            const d = STAGE.Background.Data;
+            data.BG =  d;
+            data.SHEETS[d.name] =  d;
+        };
+        const path = `data/${currentScene}_data.json`; // Map001_data.json
+        const fs = require('fs');
+        const content = JSON.stringify(data, null, '\t'); //human read format
+        fs.writeFile(path, content, 'utf8', function (err) { 
+            if(err){return console.log(err) }
+            console.log('complette: ', err);
+        });
+    };
+
+    // creer la list des data nessesaire
     function create_JsonMapData(options) {
+        const currentScene = STAGE.constructor.name;
         const currentMap = $player.currentMap;
         const data = {
             galaxi: $player.currentGalaxi, // or map data comment
