@@ -8,6 +8,8 @@ _DisplayGoup = function(){
     this._spriteBlack_d.name = "_spriteBlack_d";
     this.group = [ // le groupe dasignement pour les parentGroupe = 
         new PIXI.display.Group(0, false), // backgroud Map. BG tile elements will no update and no interaction
+        //TODO: check with ivan for a solution optimised update only when need
+        //https://github.com/pixijs/pixi-display/wiki#fast-container-sort
         new PIXI.display.Group(1, true), // map elements default player, chara and all basic sprite update z and interaction
         new PIXI.display.Group(2, true), // map elements 2er
         new PIXI.display.Group(3, false), // map elements 3er

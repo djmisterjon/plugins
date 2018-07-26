@@ -233,6 +233,8 @@ _PME.prototype.asignBase = function(res) {
         Object.defineProperty(tmpData, "data", { value: {}, writable:true });
         Object.defineProperty(tmpData, "perma", { value: $Loader._permaName.contains(res.name) });
         Object.defineProperty(tmpData, "type", { value: "spineSheet"});
+        Object.defineProperty(tmpData, "normal", { value: false, writable:true}); // TODO: need scan skin
+
         return type;
     };
     if(type==="animationSheet" || type==="tileSheet"){
@@ -242,6 +244,7 @@ _PME.prototype.asignBase = function(res) {
         Object.defineProperty(tmpData, "data", { value: {}, writable:true });
         Object.defineProperty(tmpData, "perma", { value: $Loader._permaName.contains(res.name) });
         Object.defineProperty(tmpData, "type", { value: type});
+        Object.defineProperty(tmpData, "normal", { value: false, writable:true});
         return type;
     };
     return console.error("WARNING, can not find type of packages sheets! Missing meta:",res)
@@ -309,12 +312,16 @@ _PME.prototype.computeData = function() {
         };
 
         if(tmpData.type ==="tileSheet"){
-            Object.assign(tmpData.data, tmpRes.data.data);
+            Object.assign(tmpData.data, tmpRes.data);
             Object.assign(tmpData.textures, tmpRes.textures);
             Object.assign(tmpData.textures_n, tmpRes.textures_n);
+            tmpData.normal = !!tmpData.data.meta.normal_map; 
+            console.log('tmpData: ', tmpData,tmpData.name);
         };
 
         if(tmpData.type ==="animationSheet"){
+            Object.assign(tmpData.data, tmpRes.data);
+            tmpData.normal = !!tmpData.data.meta.normal_map;
             for (const key in tmpRes.data.animations) {
                 tmpData.textures[key] = [];
                 tmpData.textures_n[key] = [];
@@ -772,11 +779,11 @@ const CAGE_MAP = STAGE.CAGE_MAP; // Store all avaibles libary
             cage.addChild(sprite);
             filtersID.push(id);
         };
-        if(data.meta.type === "tileSheet"){ addIconFrom('filter_texturePacker.png'),0 };
-        if(data.meta.type === "animationSheet"){ addIconFrom('filter_animation.png'),1 };
-        if(data.meta.type === "spineSheet"){ addIconFrom('filter_spine.png'),2 };
-        if(data.meta.normal){ addIconFrom('filter_normal.png'),3 };
-        if(data.namePack){ addIconFrom('info_multiPack.png'),4 };
+        if(data.type === "tileSheet"){ addIconFrom('filter_texturePacker.png'),0 };
+        if(data.type === "animationSheet"){ addIconFrom('filter_animation.png'),1 };
+        if(data.type === "spineSheet"){ addIconFrom('filter_spine.png'),2 };
+        if(data.normal){ addIconFrom('filter_normal.png'),3 };
+        if(data.name.contains("-0")){ addIconFrom('info_multiPack.png'),4 };
         cage.addChildAt(bg,0);
         cage.filtersID = filtersID;
         cage.bg = bg;
@@ -884,7 +891,7 @@ const CAGE_MAP = STAGE.CAGE_MAP; // Store all avaibles libary
     function create_DebugElements(type,data,sprites){
         if(type === "thumbs"){
             const bg = new PIXI.Sprite(PIXI.Texture.WHITE);
-            const previews = create_Previews(data.texture_sheets); // sprites preview reference;
+            const previews = create_Previews(data.baseTextures); // sprites preview reference;
             const icons = create_IconsFilters(type,data); // icons
             icons.x = sprites.t.width;
             bg.width = sprites.t.width + icons.width;
@@ -912,8 +919,9 @@ const CAGE_MAP = STAGE.CAGE_MAP; // Store all avaibles libary
 
     // create sprites elements
     function create_Sprites(type,data,name){
+        console.log('type,data,name: ', type,data,name);
         if(type === "thumbs"){
-            const sprite = new PIXI.Sprite(data.texture_sheets[0]); // take first tex for thumbs, preview will take all array
+            const sprite = new PIXI.Sprite(data.baseTextures[0]); // take first tex for thumbs, preview will take all array
                 sprite.scale.set( getRatio(sprite, 134, 100) ); //ratio for fitt in (obj, w, h)
             return {t:sprite}; // {d:(diffuse sprite), n:(normal sprite), s:(spine sprite), t:(tumb sprite), p:(preview sprites)} 
         };
