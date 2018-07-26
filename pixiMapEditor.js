@@ -825,10 +825,7 @@ const CAGE_MAP = STAGE.CAGE_MAP; // Store all avaibles libary
             if(!useNormal && sprites.n){ this.addChildAt(sprites.n,1) }; // show below, when mouse hover, just renderable preview n
         };
         if(type === "spineSheet"){
-            cage.addChild(DebugElements.bg, sprites.s, DebugElements.an);
-            //getBoundsMap(cage);
-            cage.getBounds();
-            //cage.DebugElements.bg.getBounds();
+            this.addChild(debug.bg, sprites.s, debug.an);
         };
     };
 
@@ -874,14 +871,11 @@ const CAGE_MAP = STAGE.CAGE_MAP; // Store all avaibles libary
         };
         if(type === "spineSheet"){
             useNormal && (cage.x = mMX, cage.y = mMY);
-            console.log('sprites.name: ', sprites.s.name);
-            console.log('sprites.s: ', sprites.s);
-            sprites.s.skeleton.setSkinByName(sprites.s.name);
-            
-            
-            sprites.s.state.setAnimation(0, data.animations[0], true); // alway use base animations idle..
+            sprites.s.skeleton.setSkinByName(sprites.groupTexureName);
+            const baseAnimation = sprites.s.spineData.findAnimation("idle") && "idle" || Object.keys[data.data.animations][0];
+            sprites.s.state.setAnimation(0, baseAnimation, true); // alway use idle base animations or 1er..
             sprites.s.skeleton.setSlotsToSetupPose();
-            DebugElements.bg.anchor.set(0.5,1);
+            debug.bg.anchor.set(0.5,1);
         };
 
     };
@@ -935,8 +929,7 @@ const CAGE_MAP = STAGE.CAGE_MAP; // Store all avaibles libary
         if(type === "spineSheet"){
             const skinName = name; // use texturesName to spine skin name
             const spine = new PIXI.spine.Spine(data.spineData);
-            spine.name = name;
-            return {s:spine}; // {d:(diffuse sprite), n:(normal sprite), s:(spine sprite), t:(tumb sprite), p:(preview sprites)} 
+            return {s:spine, groupName:data.name, groupType:type, groupTexureName:name}; // {d:(diffuse sprite), n:(normal sprite), s:(spine sprite), t:(tumb sprite), p:(preview sprites)} 
         };
     };
 
