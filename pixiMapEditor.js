@@ -307,8 +307,8 @@ _PME.prototype.computeData = function() {
         const tmpRes = this._tmpRes[key];
 
         if(tmpData.type === "spineSheet"){
-            Object.assign(tmpData.data, tmpRes.data);
-            Object.assign(tmpData.spineData, tmpRes.spineData);
+            tmpData.data = tmpRes.data;
+            tmpData.spineData = tmpRes.spineData;
         };
 
         if(tmpData.type ==="tileSheet"){
@@ -874,8 +874,11 @@ const CAGE_MAP = STAGE.CAGE_MAP; // Store all avaibles libary
         };
         if(type === "spineSheet"){
             useNormal && (cage.x = mMX, cage.y = mMY);
-            const skinName = textureName;
-            sprites.s.skeleton.setSkinByName(skinName);
+            console.log('sprites.name: ', sprites.s.name);
+            console.log('sprites.s: ', sprites.s);
+            sprites.s.skeleton.setSkinByName(sprites.s.name);
+            
+            
             sprites.s.state.setAnimation(0, data.animations[0], true); // alway use base animations idle..
             sprites.s.skeleton.setSlotsToSetupPose();
             DebugElements.bg.anchor.set(0.5,1);
@@ -930,8 +933,9 @@ const CAGE_MAP = STAGE.CAGE_MAP; // Store all avaibles libary
             return {d:sprite_d, n:sprite_n, groupName:data.name, groupType:type, groupTexureName:name}; // {d:(diffuse sprite), n:(normal sprite), s:(spine sprite), t:(tumb sprite), p:(preview sprites)} 
         };
         if(type === "spineSheet"){
-            const skinName = textureName; // use texturesName to spine skin name
+            const skinName = name; // use texturesName to spine skin name
             const spine = new PIXI.spine.Spine(data.spineData);
+            spine.name = name;
             return {s:spine}; // {d:(diffuse sprite), n:(normal sprite), s:(spine sprite), t:(tumb sprite), p:(preview sprites)} 
         };
     };
@@ -967,7 +971,7 @@ const CAGE_MAP = STAGE.CAGE_MAP; // Store all avaibles libary
     // create obj for mouse with current data setup from 
     function create_FromTileSheet(data,name){
         const cage = new PIXI.Container();// store {d:(diffuse sprite), n:(normal sprite), s:(spine sprite), t:(tumb sprite), p:(preview sprites)}
-        const type = data.meta.type;
+        const type = data.type;
         const useNormal = true;
         const sprites = create_Sprites(type, data, name);
         const debug = create_DebugElements(type, data, sprites);
@@ -1001,8 +1005,8 @@ const CAGE_MAP = STAGE.CAGE_MAP; // Store all avaibles libary
             });
         };
         if(type === "spineSheet"){ // special case
-            data.skins.forEach(skin => {
-                list.push(create_CagefromType(type,data,skin));
+            InLibs.Data.spineData.skins.forEach(skin => {
+                list.push(create_FromLibrary(InLibs.Data, skin.name));
             });
         };
         CAGE_TILESHEETS.list = list;
