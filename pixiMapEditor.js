@@ -34,7 +34,6 @@ function initializeEditor(event){
                 "editor/customEditorCSS.css",
             ];
             function onComplette(){
-                $PME.initializeTOAST();
                 $PME.startEditorLoader();
             };
             const head = document.getElementsByTagName('head')[0];
@@ -77,17 +76,8 @@ class _PME{
         this._tmpRes_multiPack = {};
         this._tmpRes = {};
         this._tmpData = {}; // store tmp data for loader , wait to compute
-        this._avaibleData = {}; // store result from nwjs and pixi loader data
+        this.Data2 = {};
         this.editor = {}; // store editor
-        this.filters = (function(){
-            const filters = [ // cache somes filters reference
-                new PIXI.filters.OutlineFilter(4, 0x2d2d2d),
-                new PIXI.filters.ColorMatrixFilter(),
-                new PIXI.filters.OutlineFilter(8, 0xffffff),
-            ];
-            filters[1].desaturate();
-            return filters;
-        })();
     };
   };
   const $PME = new _PME(); // global ↑↑↑
@@ -96,12 +86,10 @@ class _PME{
 // ┌------------------------------------------------------------------------------┐
 // wait JSONlibraryLoader befor initialise pixiMapEditor
 //└------------------------------------------------------------------------------┘
-_PME.prototype.initializeTOAST = function() {
+
+
+_PME.prototype.startEditorLoader = function() {
     iziToast.warning( this.izit_loading1() );
-};
-
-
-_PME.prototype.startEditorLoader = function() { 
     const loader = new PIXI.loaders.Loader();
     loader.add('editorGui', `editor/pixiMapEditor1.json`);
     loader.load();
@@ -139,11 +127,10 @@ _PME.prototype.startEditorLoader = function() {
 
                 fileData.root = `${fileData.dir}/${fileData.base}`
                 this._tmpData[fileData.name] = fileData;
-                const loadProgressTxt = document.createElement("div");
-                loadProgressTxt.innerHTML = `<p><span style="color:#fff">${fileData.name}</span> ==><span style="color:#989898">"${filename}"</span></p>`;
-                loadingStatus.appendChild(loadProgressTxt);
+                //const loadProgressTxt = document.createElement("div");
+                //loadProgressTxt.innerHTML = `<p><span style="color:#fff">${fileData.name}</span> ==><span style="color:#989898">"${filename}"</span></p>`;
+                //loadingStatus.appendChild(loadProgressTxt);
             };
-            
         };
     }.bind(this);
     fromDir('data2','.json'); //START
@@ -162,7 +149,7 @@ _PME.prototype.startEditorLoader = function() {
 
     loader.onProgress.add((loader, res) => {
         if(res.extension.contains("json")){
-            this.asignTypes(res);
+            this.asignBase(res);
             this._tmpRes[res.name] = res;
         };
     });
@@ -236,9 +223,8 @@ _PME.prototype.computeRessources = function() {
     this.startGui();
  };
 
-    // asign type data and normalise structures
-_PME.prototype.asignTypes = function(res) {
-    // spine dont have meta, so we sure it a spines sheets
+    // asign base type data and normalise structures
+_PME.prototype.asignBase = function(res) {
     const type = res.spineData && "spineSheet" || res.data.animations && "animationSheet" || "tileSheet";
     const tmpData = this._tmpData[res.name];
     if(type==="spineSheet"){ // type spineSheet;
@@ -386,18 +372,19 @@ _PME.prototype.computeData = function() {
 
  // Start The Editor initialisation SCOPE
 _PME.prototype.startEditor = function() {
+    console.log1('__________________startEditor:__________________ ');
     //#region [rgba(200, 0, 0,0.1)]
     // ┌------------------------------------------------------------------------------┐
     // Start The Editor initialisation SCOPE
     // └------------------------------------------------------------------------------┘
     const CACHETILESSORT = {}; //CACHE FOR PATHFINDING ONCE
     const REGISTER = []; // REGISTER OBJET ON MAPS, ADDED WITH EDITOR SESSIONS
-    const FILTER = {
+    const FILTERS = {
         OutlineFilterx4: new PIXI.filters.OutlineFilter (4, 0x000000, 1),
         OutlineFilterx16: new PIXI.filters.OutlineFilter (16, 0x000000, 1),
     }
     const STAGE = SceneManager._scene; 
-    const DATA = this._avaibleData
+    const DATA = this.Data2;
     const EDITOR = this.editorGui;
     const Renderer = Graphics._renderer; // ref to current renderer RMMV Graphics
     let ButtonsSlots = []; // store spine buttons
@@ -424,7 +411,7 @@ _PME.prototype.startEditor = function() {
 
     //#endregion
 
-    //#region [rgba(250, 0, 0,0.03)]
+//#region [rgba(250, 0, 0,0.03)]
 // ┌------------------------------------------------------------------------------┐
 // SETUP VARIABLE AND AUTO FUNCTION SCOPED (ONCE)
 // └------------------------------------------------------------------------------┘
@@ -473,8 +460,8 @@ const CAGE_MAP = STAGE.CAGE_MAP; // Store all avaibles libary
      // createLibraryObj sheets for thumbails libs
      (function(){
         let x = 100;
-        for (const key in this._avaibleData) { // this._avaibleData
-            const data = this._avaibleData[key];
+        for (const key in DATA) { // this._avaibleData === DATA
+            const data = DATA[key];
             const cage = create_FromData(data,"thumbs"); // create from Data ""
            // const cage = create_FromLibrary(data,"thumbs"); // create from Data ""
             // const cage = create_FromTileSheet(data,"thumbs"); // create from Data ""
@@ -482,7 +469,7 @@ const CAGE_MAP = STAGE.CAGE_MAP; // Store all avaibles libary
             CAGE_LIBRARY.list.push(cage);
         };
         refreshLibs();
-    }).bind(this)();
+    })();
 
     // createButtons from spine Editor
     (function(){ // make and store buttons Data'slots
@@ -737,8 +724,8 @@ const CAGE_MAP = STAGE.CAGE_MAP; // Store all avaibles libary
                         STAGE.CAGE_MAP.removeChild(STAGE.Background);
                         STAGE.Background = null;
                     };
-                    STAGE.createBackground($PME._avaibleData[value]);
-                    STAGE.Background.Data = $PME._avaibleData[value];
+                    STAGE.createBackground(DATA[value]);
+                    STAGE.Background.Data = DATA[value];
 
                 }else{
                     if(STAGE.Background){
@@ -1138,14 +1125,14 @@ const CAGE_MAP = STAGE.CAGE_MAP; // Store all avaibles libary
     function activeFilters(cage){
         if(cage.bone){ // is a buttons
             const sprite =  cage.currentSprite;
-            sprite._filters = [ FILTER.OutlineFilterx4 ]; // thickness, color, quality
+            sprite._filters = [ FILTERS.OutlineFilterx4 ]; // thickness, color, quality
             sprite.scale.set(1.2,-1.2);
             cage.color.a = 1;
         }else{
             const sprite =  cage.Sprites.t ||  cage.Sprites.d ||  cage.Sprites.s;
-            sprite._filters = [ FILTER.OutlineFilterx4 ]; // thickness, color, quality
-            cage._filters = [ FILTER.OutlineFilterx16 ];
-            cage.DebugElements.bg._filters = [ FILTER.OutlineFilterx16 ];
+            sprite._filters = [ FILTERS.OutlineFilterx4 ]; // thickness, color, quality
+            cage._filters = [ FILTERS.OutlineFilterx16 ];
+            cage.DebugElements.bg._filters = [ FILTERS.OutlineFilterx16 ];
             cage.alpha = 1;
         };
  
@@ -1411,8 +1398,8 @@ const CAGE_MAP = STAGE.CAGE_MAP; // Store all avaibles libary
         // create perma json for loader,update from loader: les perma sont defenie dans 
         // file:///C:\Users\jonle\Documents\Games\anft_1.6.1\js\plugins\core_Loader.js#L45
         const data = {SHEETS:{}};
-        for (const key in $PME._avaibleData) {
-            const e = $PME._avaibleData[key];
+        for (const key in DATA) {
+            const e = DATA[key];
             if(e.meta.perma){
                 data.SHEETS[e.name] = e;
             };
