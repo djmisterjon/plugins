@@ -316,7 +316,6 @@ _PME.prototype.computeData = function() {
             Object.assign(tmpData.textures, tmpRes.textures);
             Object.assign(tmpData.textures_n, tmpRes.textures_n);
             tmpData.normal = !!tmpData.data.meta.normal_map; 
-            console.log('tmpData: ', tmpData,tmpData.name);
         };
 
         if(tmpData.type ==="animationSheet"){
@@ -470,9 +469,6 @@ const CAGE_MAP = STAGE.CAGE_MAP; // Store all avaibles libary
         for (const key in DATA) { // this._avaibleData === DATA
             const data = DATA[key];
             const cage = create_FromData(data,"thumbs"); // create from Data ""
-           // const cage = create_FromLibrary(data,"thumbs"); // create from Data ""
-            // const cage = create_FromTileSheet(data,"thumbs"); // create from Data ""
-            // const cage = create_FromMouse(data,"thumbs"); // create from Data ""
             CAGE_LIBRARY.list.push(cage);
         };
         refreshLibs();
@@ -830,7 +826,6 @@ const CAGE_MAP = STAGE.CAGE_MAP; // Store all avaibles libary
         };
         if(type === "spineSheet"){
             cage.addChild(DebugElements.bg, sprites.s, DebugElements.an);
-            console.log('cage: ', textureName,cage);
             //getBoundsMap(cage);
             cage.getBounds();
             //cage.DebugElements.bg.getBounds();
@@ -919,7 +914,6 @@ const CAGE_MAP = STAGE.CAGE_MAP; // Store all avaibles libary
 
     // create sprites elements
     function create_Sprites(type,data,name){
-        console.log('type,data,name: ', type,data,name);
         if(type === "thumbs"){
             const sprite = new PIXI.Sprite(data.baseTextures[0]); // take first tex for thumbs, preview will take all array
                 sprite.scale.set( getRatio(sprite, 134, 100) ); //ratio for fitt in (obj, w, h)
@@ -958,7 +952,7 @@ const CAGE_MAP = STAGE.CAGE_MAP; // Store all avaibles libary
     // create tiles from type with texture name
     function create_FromLibrary(data,name){
         const cage = new PIXI.Container();// store {d:(diffuse sprite), n:(normal sprite), s:(spine sprite), t:(tumb sprite), p:(preview sprites)}
-        const type = data.meta.type;
+        const type = data.type;
         const sprites = create_Sprites(type, data, name);
         const debug = create_DebugElements(type, data, sprites);
         setup_Reference.call(cage ,type, data, sprites, debug);
@@ -995,11 +989,12 @@ const CAGE_MAP = STAGE.CAGE_MAP; // Store all avaibles libary
 // └------------------------------------------------------------------------------┘
 
     function show_tileSheet(InLibs) {
+        console.log('InLibs: ', InLibs);
         // check if alrealy opened ???  open_tileSheet // return hide
         if(check_tileSheetStatus(CAGE_TILESHEETS,InLibs)){return}; 
         // create tiles from a LIST ARRAY for the tilesBox
         const list = [];
-        const type = InLibs.Data.meta.type;
+        const type = InLibs.Data.type;
         if(["tileSheet","animationSheet"].contains(type) ){
             Object.keys(InLibs.Data.textures).forEach(texName => {
                 list.push(create_FromLibrary(InLibs.Data, texName));
