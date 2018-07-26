@@ -667,15 +667,30 @@ const CAGE_MAP = STAGE.CAGE_MAP; // Store all avaibles libary
         start_mapSetupEditor(_jscolor,_Falloff);
     };
 
-    // for scene setup
+    // for scene setup ONLY
     function start_mapSetupEditor(_jscolor,_Falloff){
         const dataIntepretor = document.getElementById("dataIntepretor"); // current Data html box
         let Data_Values = { // stock all props value //TODO: MAKE A DEFAULT CONSTRUCTOR
             //TODO: LOOK if we can add checbox value in same props, or maybe not for easly Json stringnify ...
             BackGround:{def:null,value:null}, // props:{def:, value:, checked:}
+            blendMode:{def:1,value:1},
+            lightHeight:{def:0.075,value:0.075},
+            brightness:{def:1,value:1},
+            radius:{def:Infinity,value:Infinity},
+            drawMode:{def:6,value:6},
+            color:{def:"0xffffff",value:"0xffffff"},
+            falloff:{def:[0.75, 3, 20],value:[0.75, 3, 20]},
+            
         };
         let Data_CheckBox = { // stock checkBox id and data
-      
+            _BackGround:false,
+            _blendMode:false,
+            _brightness:false,
+            _color:false,
+            _drawMode:false,
+            _falloff:false,
+            _lightHeight:false,
+            _color:false,
         };
         let Data_Options = { // no props, special options case
       
@@ -706,26 +721,13 @@ const CAGE_MAP = STAGE.CAGE_MAP; // Store all avaibles libary
         // ========= control global scene light ===========
         // JSCOLOR, when change color from color Box
         _jscolor.onFineChange = function(){
-            const key = Cage_DataEditor.jsColor.keyName;
-            document.getElementById(`_${key}`).checked = true; // force check case
-            refreshSessionWith_html(session);
-            const _reelZoom = document.getElementById('reelZoom').checked;
-            refreshSpriteWith_session(objSprite,session,[_reelZoom]);
+            Data_Values.color.value = "0x"+_jscolor.targetElement.value;
+            refreshWithData(Data_Values, Data_CheckBox);
         };
         // Bootstrape sliders, when change value
-        _Falloff.kc.on("slide", function(value) {
-            refreshSessionWith_html(session,"falloff", value, 0);
-            refreshSpriteWith_session(objSprite,session,[_reelZoom]);
-        });
-        _Falloff.kl.on("slide", function(value) {
-            refreshSessionWith_html(session,"falloff", value, 1);
-            refreshSpriteWith_session(objSprite,session,[_reelZoom]);
-            
-        });
-        _Falloff.kq.on("slide", function(value) {
-            refreshSessionWith_html(session,"falloff", value, 2);
-            refreshSpriteWith_session(objSprite,session,[_reelZoom]);
-        });
+        _Falloff.kc.on("slide", function(value) { Data_Values.falloff.value[0] = value });
+        _Falloff.kl.on("slide", function(value) { Data_Values.falloff.value[1] = value });
+        _Falloff.kq.on("slide", function(value) { Data_Values.falloff.value[2] = value });
     };
 
 
@@ -740,10 +742,10 @@ const CAGE_MAP = STAGE.CAGE_MAP; // Store all avaibles libary
                 case "BackGround":
                     STAGE.createBackground(DATA[value]);
                 break;
-            
-                default:
-                    break;
-            }
+                case "blendMode":case "lightHeight":case "brightness":case "radius":case "drawMode":case "color":case "falloff":
+                    STAGE.light_Ambient[key] = +value || value;
+                break;
+            };
         }
     };
 
