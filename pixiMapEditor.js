@@ -313,9 +313,17 @@ _PME.prototype.computeData = function() {
 
         if(tmpData.type ==="tileSheet"){
             Object.assign(tmpData.data, tmpRes.data);
-            Object.assign(tmpData.textures, tmpRes.textures);
-            Object.assign(tmpData.textures_n, tmpRes.textures_n);
+            if( tmpData.dirArray.contains("BG") ){
+                const texName = Object.keys(tmpRes.textures)[0];
+                Object.assign(tmpData.textures, tmpRes.textures[texName]);
+                Object.assign(tmpData.textures_n, tmpRes.textures_n[texName+"_n"]);
+                tmpData.BG = true;
+            }else{
+                Object.assign(tmpData.textures, tmpRes.textures);
+                Object.assign(tmpData.textures_n, tmpRes.textures_n);
+            };
             tmpData.normal = !!tmpData.data.meta.normal_map; 
+
         };
 
         if(tmpData.type ==="animationSheet"){
@@ -468,8 +476,10 @@ const CAGE_MAP = STAGE.CAGE_MAP; // Store all avaibles libary
         let x = 100;
         for (const key in DATA) { // this._avaibleData === DATA
             const data = DATA[key];
-            const cage = create_FromData(data,"thumbs"); // create from Data ""
-            CAGE_LIBRARY.list.push(cage);
+            if(!data.BG){ // dont add BG inside library
+                const cage = create_FromData(data,"thumbs"); // create from Data ""
+                CAGE_LIBRARY.list.push(cage);
+            };
         };
         refreshLibs();
     })();
@@ -877,7 +887,6 @@ const CAGE_MAP = STAGE.CAGE_MAP; // Store all avaibles libary
             sprites.s.skeleton.setSlotsToSetupPose();
             debug.bg.anchor.set(0.5,1);
         };
-
     };
 
     function create_DebugElements(type,data,sprites){
