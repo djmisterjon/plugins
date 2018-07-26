@@ -29,7 +29,7 @@ Scene_Local.prototype.initialize = function(loaderSets,callBackScene,firstTime) 
 
 Scene_Local.prototype.create = function() {
     const dat = $Loader.loaderSet.Scene_Local_data;
-    this.createBackground($Loader.Data2.localBG);
+    //this.createBackground($Loader.Data2.localBG);
     //this.createLocalFlags();
     //this.createTexts();
     //this.createSpineAvatar();

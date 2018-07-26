@@ -36,11 +36,11 @@ class _coreLoader {
                     MapInfos:"data/MapInfos.json", // also load all maps Map###_data.json and create galaxi register
                     Perma:"data/perma.json", // perma , Enemies,cursor,loader,Avatar...
                     //Scene_Local_data:"data/Scene_Local_data.json",
-                    Scene_IntroVideo:"data/Scene_IntroVideo.json",
-                    Scene_Boot:"data/Scene_Boot.json",
-                    Scene_IntroVideo:"data/Scene_IntroVideo.json",
-                    Scene_Local_data:"data/Scene_Local_data.json",
-                    Scene_Title:"data/Scene_Title.json",
+                    //Scene_IntroVideo:"data/Scene_IntroVideo.json",
+                    //Scene_Boot:"data/Scene_Boot.json",
+                    //Scene_IntroVideo:"data/Scene_IntroVideo.json",
+                    //Scene_Local_data:"data/Scene_Local_data.json",
+                    //Scene_Title:"data/Scene_Title.json",
                 },
             }
           });
@@ -151,6 +151,7 @@ _coreLoader.prototype.preLoad_Json = function() {
 // $Loader.load(['loaderSet',loaderSet]);
 _coreLoader.prototype.load = function(set) {
     console.log6('_________________________________set: ', set);
+    if(!this.loaderSet[set]){return this._scene.isLoading = false};
     const loader = new PIXI.loaders.Loader();
     for (const key in this.loaderSet[set].SHEETS) { // L:SHEETS
         const data = this.loaderSet[set].SHEETS[key];
