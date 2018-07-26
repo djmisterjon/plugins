@@ -391,6 +391,7 @@ _PME.prototype.startEditor = function() {
     // ┌------------------------------------------------------------------------------┐
     // Start The Editor initialisation SCOPE
     // └------------------------------------------------------------------------------┘
+    const SCENEJSONSETUP = {bg:null}; // base configuration for the scene.ambiant, BG ....
     const CACHETILESSORT = {}; //CACHE FOR PATHFINDING ONCE
     const REGISTER = []; // REGISTER OBJET ON MAPS, ADDED WITH EDITOR SESSIONS
     const FILTERS = {
@@ -669,13 +670,14 @@ const CAGE_MAP = STAGE.CAGE_MAP; // Store all avaibles libary
     // for scene setup
     function start_mapSetupEditor(_jscolor,_Falloff){
         const dataIntepretor = document.getElementById("dataIntepretor"); // current Data html box
-        let dataFromID = { 
+        let Data_Values = { // stock all props value //TODO: MAKE A DEFAULT CONSTRUCTOR
+            //TODO: LOOK if we can add checbox value in same props, or maybe not for easly Json stringnify ...
+            BackGround:{def:null,value:null}, // props:{def:, value:, checked:}
+        };
+        let Data_CheckBox = { // stock checkBox id and data
       
         };
-        let checkBoxID = { // store checkBox id and data
-      
-        };
-        let optionsFromID = { // no props, special options case
+        let Data_Options = { // no props, special options case
       
         };
 
@@ -686,18 +688,19 @@ const CAGE_MAP = STAGE.CAGE_MAP; // Store all avaibles libary
         // ========= DATA LISTENER  ===========
         // when checkBox changes
         dataIntepretor.onchange = function(event){
-    
+            
         };
         dataIntepretor.oninput = function(event){ 
             const e = event.target;
-            if(!e.id.contains("_")){
-                dataFromID[e.id] = e.value;
-            };
-            if(e.id.contains("_")){
+            if(e.type.contains("checkbox")){ // is checkBox
                 const e = event.target;
-                checkBoxID[e.id] = e.checked;
+                Data_CheckBox[e.id] = e.checked;
             };
-            refreshWithData(dataFromID,checkBoxID);
+            if(!e.type.contains("checkbox")){
+                Data_Values[e.id].value = e.value;
+            };
+ 
+            refreshWithData(Data_Values, Data_CheckBox);
         };
 
         // ========= control global scene light ===========
@@ -726,29 +729,23 @@ const CAGE_MAP = STAGE.CAGE_MAP; // Store all avaibles libary
     };
 
 
-    function refreshWithData(dataFromID,checkBoxID) {
-        console.log('dataFromID,checkBoxID: ', dataFromID,checkBoxID);
-        for (const key in dataFromID) {
-            const value = dataFromID[key];
-            const checked = !!checkBoxID[`_${key}`];
-            if(key==="BackGround"){
-                if(checked && value){
-                    if(STAGE.Background){
-                        STAGE.CAGE_MAP.removeChild(STAGE.Background);
-                        STAGE.Background = null;
-                    };
+    function refreshWithData(Data_Values, Data_CheckBox) {
+        console.log1('Data_Values: ', Data_Values);
+        console.log1('Data_CheckBox: ', Data_CheckBox);
+        for (const key in Data_Values) {
+            const checked = !!Data_CheckBox[`_${key}`];
+            const value = checked && Data_Values[key].value || Data_Values[key].def;
+            
+            switch (key) {
+                case "BackGround":
                     STAGE.createBackground(DATA[value]);
-                    STAGE.Background.Data = DATA[value];
-
-                }else{
-                    if(STAGE.Background){
-                        STAGE.CAGE_MAP.removeChild(STAGE.Background);
-                        STAGE.Background = null;
-                    };
-                }
+                break;
+            
+                default:
+                    break;
             }
         }
-    }
+    };
 
 
 //#endregion

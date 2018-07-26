@@ -29,32 +29,33 @@ Scene_Local.prototype.initialize = function(loaderSets,callBackScene,firstTime) 
 
 Scene_Local.prototype.create = function() {
     const dat = $Loader.loaderSet.Scene_Local_data;
-    //this.createBackground($Loader.Data2.localBG);
+    this.createBackground(null); //TODO:
     //this.createLocalFlags();
     //this.createTexts();
     //this.createSpineAvatar();
 };
 
-Scene_Local.prototype.createBackground = function(data) {
+// allow pass a sting reference data, or a full Data
+Scene_Local.prototype.createBackground = function(bgName) {
     if(this.Background){
         this.CAGE_MAP.removeChild(this.Background);
     };
-
     const cage = new PIXI.Container();
-    //const data = _data || $Loader.reg._misc._bg.backgroud; // bg
-    const sprite_d = new PIXI.Sprite(data.textures);
-    const sprite_n = new PIXI.Sprite(data.textures_n);
-    // asign group display
-    sprite_d.parentGroup = PIXI.lights.diffuseGroup;
-    sprite_n.parentGroup = PIXI.lights.normalGroup;
-    cage.parentGroup = $displayGroup.group[0];
-    //cage.zIndex;
-    // setup
+    if(bgName){
+        const data = typeof bgName === 'string' && $Loader.Data2[bgName] || bgName;
+        //const data = _data || $Loader.reg._misc._bg.backgroud; // bg
+        const sprite_d = new PIXI.Sprite(data.textures);
+        const sprite_n = new PIXI.Sprite(data.textures_n);
+        // asign group display
+        sprite_d.parentGroup = PIXI.lights.diffuseGroup;
+        sprite_n.parentGroup = PIXI.lights.normalGroup;
+        cage.parentGroup = $displayGroup.group[0];
+        cage.addChild(sprite_d, sprite_n);
+    };
+    
     cage.name = 'background';
-
     // parenting
-    cage.addChild(sprite_d, sprite_n);
-    this.CAGE_MAP.addChild(cage); // at 0 ?
+    this.CAGE_MAP.addChildAt(cage,0); // at 0 ?
     // reference
     this.Background = cage;
 };
