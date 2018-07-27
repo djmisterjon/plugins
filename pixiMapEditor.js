@@ -643,9 +643,9 @@ const CAGE_MAP = STAGE.CAGE_MAP; // Store all avaibles libary
     // ┌------------------------------------------------------------------------------┐
     // IZITOAST DATA EDITOR 
     // └------------------------------------------------------------------------------┘
-    // create data id light for HTML JSON
+    // create data id for HTML JSON, if existe , return Data_Values
     function getDataJson(OBJ){
-        console.log('getDataJson OBJ: ', OBJ);
+        if(OBJ.Data_Values){return OBJ.Data_Values};
         if(OBJ.isStage){
             return { // id html
                 BackGround:{def:false, value:OBJ.Background.name}, // props:{def:, value:, checked:}
@@ -658,6 +658,15 @@ const CAGE_MAP = STAGE.CAGE_MAP; // Store all avaibles libary
                 falloff:{def:[0.75, 3, 20], value:OBJ.light_Ambient.falloff},
             };
         };
+    };
+
+    // create data checkbox with Data_Values
+    function getDataCheckBoxWith(Data_Values){
+        const Data_CheckBox = {};
+        Object.keys(Data_Values).forEach(key => {
+            Data_CheckBox[key] = true;
+        });
+        return Data_CheckBox;
     };
 
 
@@ -688,16 +697,14 @@ const CAGE_MAP = STAGE.CAGE_MAP; // Store all avaibles libary
 
     // for scene setup ONLY
     function start_mapSetupEditor(_jscolor,_Falloff,OBJ){
+        console.log('OBJ: ', OBJ);
         const dataIntepretor = document.getElementById("dataIntepretor"); // current Data html box
         //STEP2: refresh html with json
         //STEP3: edit html data
         let Data_Values = getDataJson(OBJ);//STEP1:  get json from obj
-        Data_CheckBox = OBJ._check || {}; // stock checkBox id in objet _check
+        Data_CheckBox = OBJ.Data_CheckBox || getDataCheckBoxWith(Data_Values); // stock checkBox id in objet _check
         Data_Options = {}; // no props, special options case
         setHTMLWithData(Data_Values, Data_CheckBox, _jscolor, _Falloff); 
-
-        
-
 
         // ========= DATA LISTENER  ===========
         // when checkBox changes
@@ -708,7 +715,7 @@ const CAGE_MAP = STAGE.CAGE_MAP; // Store all avaibles libary
             const e = event.target;
             if(e.type.contains("checkbox")){ // is checkBox
                 const e = event.target;
-                Data_CheckBox[e.id] = e.checked;
+                Data_CheckBox[e.id.substring(1)] = e.checked; // substring: remove "_"id
             };
             if(!e.type.contains("checkbox")){
                 Data_Values[e.id].value = e.value;
@@ -732,7 +739,7 @@ const CAGE_MAP = STAGE.CAGE_MAP; // Store all avaibles libary
         dataIntepretor.onclick =function(event){ //check if html checkbox change?
             const e = event.target; // buttons
             if(e.type === "button"){
-                if(e.id==="apply"){ close_mapSetupEditor(); };// apply and close
+                if(e.id==="apply"){ close_mapSetupEditor(OBJ, Data_Values, Data_CheckBox); };// apply and close
                 if(e.id==="applyAll"){ };// apply to all and close
                 if(e.id==="cancel"){ };// cancel and close
                 if(e.id==="reset"){ // reset session cache and data
@@ -748,10 +755,10 @@ const CAGE_MAP = STAGE.CAGE_MAP; // Store all avaibles libary
 
     // asign props value to objet, if checked
     function setObjWithData(Data_Values, Data_CheckBox) {
-        console.log1('Data_Values: ', Data_Values);
+        console.log1('setObjWithData Data_Values: ', Data_Values);
         console.log1('Data_CheckBox: ', Data_CheckBox);
         for (const key in Data_Values) {
-            const checked = !!Data_CheckBox[`_${key}`];
+            const checked = !!Data_CheckBox[key];
             const value = checked && Data_Values[key].value || Data_Values[key].def;
             
             switch (key) {
@@ -767,13 +774,16 @@ const CAGE_MAP = STAGE.CAGE_MAP; // Store all avaibles libary
 
     // asign props value to HTML izit
     function setHTMLWithData(Data_Values, Data_CheckBox, _jscolor, _Falloff) {
+        console.log('setHTMLWithData Data_CheckBox: ', Data_CheckBox);
         for (const key in Data_Values) {
             const value = Data_Values[key].value;
             const _value = true; // checked value
+            let e,c;
             switch (key) {
                 case "BackGround":
                     e = document.getElementById(key);
                     e.value = Data_Values[key].value;
+                    e = document.getElementById(key);
                 break;
                 case "blendMode":case "lightHeight":case "brightness":case "radius":case "drawMode":case "color":
                     //STAGE.light_Ambient[key] = +value || value;
@@ -786,15 +796,23 @@ const CAGE_MAP = STAGE.CAGE_MAP; // Store all avaibles libary
                 _Falloff.kq.setValue(Data_Values[key].value[2]);
                 break;
             };
+
+            // checkbox
+            for (const key in Data_CheckBox) {
+                c = document.getElementById("_"+key)
+                c.checked = Data_CheckBox[key];
+            }
         }
     };
 
     // close the dataEditor
-    function close_mapSetupEditor(save,session){
-        iziToast.opened = false;
+    function close_mapSetupEditor(OBJ, Data_Values, Data_CheckBox){
+        console.log2('OBJ: ', OBJ);
+        OBJ.Data_Values = Data_Values;
+        OBJ.Data_CheckBox = Data_CheckBox;
         iziToast.hide({transitionOut: 'flipOutX'}, document.getElementById("mapSetupEditor") );
+        iziToast.opened = false;
         document.body.requestPointerLock(); // pointlocker API
-
     };
 
 //#endregion
