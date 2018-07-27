@@ -643,6 +643,25 @@ const CAGE_MAP = STAGE.CAGE_MAP; // Store all avaibles libary
     // ┌------------------------------------------------------------------------------┐
     // IZITOAST DATA EDITOR 
     // └------------------------------------------------------------------------------┘
+    // create data id light for HTML JSON
+    function getDataJson(OBJ){
+        console.log('getDataJson OBJ: ', OBJ);
+        if(OBJ.isStage){
+            return { // id html
+                BackGround:{def:false, value:OBJ.Background.name}, // props:{def:, value:, checked:}
+                blendMode:{def:1, value:OBJ.light_Ambient.blendMode},
+                lightHeight:{def:0.075, value:OBJ.light_Ambient.lightHeight},
+                brightness:{def:1, value:OBJ.light_Ambient.brightness},
+                radius:{def:Infinity, value:OBJ.light_Ambient.radius},
+                drawMode:{def:6, value:OBJ.light_Ambient.drawMode},
+                color:{def:"0xffffff", value:OBJ.light_Ambient.color},
+                falloff:{def:[0.75, 3, 20], value:OBJ.light_Ambient.falloff},
+            };
+        };
+    };
+
+
+
     // create multi sliders light
     function create_sliderFalloff(){
         const kc = new Slider("#kc", {  step: 0.01,value:0, min: 0.01, max: 1, tooltip: false });
@@ -664,42 +683,22 @@ const CAGE_MAP = STAGE.CAGE_MAP; // Store all avaibles libary
         const _jscolor = new jscolor(document.getElementById("color")); // for case:id="_color" slider:id="color"
         _jscolor.zIndex = 9999999;
         const _Falloff = create_sliderFalloff(); // create slider html for pixiHaven
-        start_mapSetupEditor(_jscolor,_Falloff);
+        start_mapSetupEditor(_jscolor,_Falloff, STAGE);
     };
 
     // for scene setup ONLY
-    function start_mapSetupEditor(_jscolor,_Falloff){
+    function start_mapSetupEditor(_jscolor,_Falloff,OBJ){
         const dataIntepretor = document.getElementById("dataIntepretor"); // current Data html box
-        let Data_Values = { // stock all props value //TODO: MAKE A DEFAULT CONSTRUCTOR
-            //TODO: LOOK if we can add checbox value in same props, or maybe not for easly Json stringnify ...
-            BackGround:{def:null,value:null}, // props:{def:, value:, checked:}
-            blendMode:{def:1,value:1},
-            lightHeight:{def:0.075,value:0.075},
-            brightness:{def:1,value:1},
-            radius:{def:Infinity,value:Infinity},
-            drawMode:{def:6,value:6},
-            color:{def:"0xffffff",value:"0xffffff"},
-            falloff:{def:[0.75, 3, 20],value:[0.75, 3, 20]},
-            
-        };
-        let Data_CheckBox = { // stock checkBox id and data
-            _BackGround:false,
-            _blendMode:false,
-            _brightness:false,
-            _color:false,
-            _drawMode:false,
-            _falloff:false,
-            _lightHeight:false,
-            _color:false,
-        };
-        let Data_Options = { // no props, special options case
-      
-        };
+        //STEP2: refresh html with json
+        //STEP3: edit html data
+        let Data_Values = getDataJson(OBJ);//STEP1:  get json from obj
+        Data_CheckBox = OBJ._check || {}; // stock checkBox id in objet _check
+        Data_Options = {}; // no props, special options case
+        setHTMLWithData(Data_Values, Data_CheckBox, _jscolor, _Falloff); 
 
         
-        //STEP1: GET NATIVE DATA and store in tmp_DataByID
-        //STEP2: REFRESH HTML WITH NATIVE DATA"
-        //STEP3: CHANGE CURRENT DATA WITH LISTENER"
+
+
         // ========= DATA LISTENER  ===========
         // when checkBox changes
         dataIntepretor.onchange = function(event){
@@ -715,23 +714,40 @@ const CAGE_MAP = STAGE.CAGE_MAP; // Store all avaibles libary
                 Data_Values[e.id].value = e.value;
             };
  
-            refreshWithData(Data_Values, Data_CheckBox);
+            setObjWithData(Data_Values, Data_CheckBox);
         };
 
         // ========= control global scene light ===========
         // JSCOLOR, when change color from color Box
         _jscolor.onFineChange = function(){
             Data_Values.color.value = "0x"+_jscolor.targetElement.value;
-            refreshWithData(Data_Values, Data_CheckBox);
+            setObjWithData(Data_Values, Data_CheckBox);
         };
         // Bootstrape sliders, when change value
         _Falloff.kc.on("slide", function(value) { Data_Values.falloff.value[0] = value });
         _Falloff.kl.on("slide", function(value) { Data_Values.falloff.value[1] = value });
         _Falloff.kq.on("slide", function(value) { Data_Values.falloff.value[2] = value });
+
+        // BUTTONS
+        dataIntepretor.onclick =function(event){ //check if html checkbox change?
+            const e = event.target; // buttons
+            if(e.type === "button"){
+                if(e.id==="apply"){ close_mapSetupEditor(); };// apply and close
+                if(e.id==="applyAll"){ };// apply to all and close
+                if(e.id==="cancel"){ };// cancel and close
+                if(e.id==="reset"){ // reset session cache and data
+                    $PME.storage.removeItem(name);
+                    session = getSession(objLight); // session (final data)
+                    // refresh
+                    refreshHtmlWith_session(session);// asign session value to html input
+                    refreshSpriteWith_session(objLight,session);// asign session value to sprite obj
+                };
+            };
+        };
     };
 
-
-    function refreshWithData(Data_Values, Data_CheckBox) {
+    // asign props value to objet, if checked
+    function setObjWithData(Data_Values, Data_CheckBox) {
         console.log1('Data_Values: ', Data_Values);
         console.log1('Data_CheckBox: ', Data_CheckBox);
         for (const key in Data_Values) {
@@ -749,6 +765,37 @@ const CAGE_MAP = STAGE.CAGE_MAP; // Store all avaibles libary
         }
     };
 
+    // asign props value to HTML izit
+    function setHTMLWithData(Data_Values, Data_CheckBox, _jscolor, _Falloff) {
+        for (const key in Data_Values) {
+            const value = Data_Values[key].value;
+            const _value = true; // checked value
+            switch (key) {
+                case "BackGround":
+                    e = document.getElementById(key);
+                    e.value = Data_Values[key].value;
+                break;
+                case "blendMode":case "lightHeight":case "brightness":case "radius":case "drawMode":case "color":
+                    //STAGE.light_Ambient[key] = +value || value;
+                    e = document.getElementById(key);
+                    e.value = Data_Values[key].value;
+                break;
+                case "falloff":
+                _Falloff.kc.setValue(Data_Values[key].value[0]);
+                _Falloff.kl.setValue(Data_Values[key].value[1]);
+                _Falloff.kq.setValue(Data_Values[key].value[2]);
+                break;
+            };
+        }
+    };
+
+    // close the dataEditor
+    function close_mapSetupEditor(save,session){
+        iziToast.opened = false;
+        iziToast.hide({transitionOut: 'flipOutX'}, document.getElementById("mapSetupEditor") );
+        document.body.requestPointerLock(); // pointlocker API
+
+    };
 
 //#endregion
 

@@ -52,8 +52,8 @@ Scene_Local.prototype.createBackground = function(bgName) {
         cage.parentGroup = $displayGroup.group[0];
         cage.addChild(sprite_d, sprite_n);
     };
-    
-    cage.name = 'background';
+
+    cage.name = typeof bgName === 'string' &&  bgName || bgName && bgName.name || false;
     // parenting
     this.CAGE_MAP.addChildAt(cage,0); // at 0 ?
     // reference
