@@ -154,15 +154,18 @@ _coreLoader.prototype.preLoad_Json = function() {
 // $Loader.load(['loaderSet',loaderSet]);
 _coreLoader.prototype.load = function(set) {
     console.log6('load_________________________________set: ', set);
+    this._scene = SceneManager._scene;
     for (const key in this.Data2) { delete this.Data2[key] }; // clear all cache when load new scene
     if(!this.loaderSet[set]){return this._scene.isLoading = false};
-    
+    let empty = !!this.loaderSet[set].SHEETS;
     this._tmpData = this.loaderSet[set].SHEETS;
+
     this._tmpRes = {};
     this._tmpRes_normal = {};
     this._tmpRes_multiPack = {};
     const loader = new PIXI.loaders.Loader();
     for (const key in this._tmpData) {
+        empty = false;
         const dataJ = this._tmpData[key];
         loader.add(key, `${dataJ.dir}/${dataJ.base}`);
     };
@@ -172,12 +175,14 @@ _coreLoader.prototype.load = function(set) {
         if(res.extension.contains("json")){
             this.asignBase(res);
             this._tmpRes[res.name] = res;
+            
         };
     });
     loader.onComplete.add((loader, res) => {
-        console.log('load onComplete: ');
        this.loadMultiPack();
+       
     });
+    if(empty){loader.onComplete._tail._fn()}; // force onComplete if empty;
 };
 
 //#2 load all multiPack reference
@@ -210,7 +215,6 @@ _coreLoader.prototype.loadMultiPack = function() {
 
   //#3 load normal png
 _coreLoader.prototype.loadNormal = function() {
-    console.log('loadNormal: ');
     const loader = new PIXI.loaders.Loader();
     let empty = true; // if find nothing ? force jump
     for (const key in this._tmpRes) {
@@ -239,7 +243,6 @@ _coreLoader.prototype.loadNormal = function() {
         this._tmpRes_normal[res.name] = res;
     });
     loader.onComplete.add((loader, res) => {
-        console.log('loadNormal onComplete: ');
         this.computeRessources();
     });
     if(empty){loader.onComplete._tail._fn()}; // force onComplete if empty;
@@ -247,7 +250,6 @@ _coreLoader.prototype.loadNormal = function() {
 
 // we have data, multipack, normal, now merging
 _coreLoader.prototype.computeRessources = function() {
-    console.log('computeRessources: ');
     this.computeNormal();
     this.computeMultiPack();
     this.computeData();
@@ -260,6 +262,7 @@ _coreLoader.prototype.computeRessources = function() {
 _coreLoader.prototype.asignBase = function(res) {
     const type = res.spineData && "spineSheet" || res.data.animations && "animationSheet" || "tileSheet";
     const tmpData = this._tmpData[res.name];
+    
     if(type==="spineSheet"){ // type spineSheet;
         //Object.defineProperty(tmpData, "baseTextures", { value: [], writable:true }); // only for editor
         Object.defineProperty(tmpData, "spineData", { value: {}, writable:true });

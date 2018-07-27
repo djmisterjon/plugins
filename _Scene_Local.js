@@ -28,7 +28,7 @@ Scene_Local.prototype.initialize = function(loaderSets,callBackScene,firstTime) 
 };
 
 Scene_Local.prototype.create = function() {
-    const bgName = $Loader.loaderSet.Scene_Local_data.SCENE.BackGround;
+    const bgName = $Loader.loaderSet.Scene_Local_data.SCENE.BackGround || false;
     this.createBackground(bgName); //TODO:
     //this.createLocalFlags();
     //this.createTexts();

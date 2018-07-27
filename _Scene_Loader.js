@@ -60,8 +60,6 @@ Scene_Loader.prototype.initialize = function(loaderSets,callBackScene,firstTime)
     this.firstTime = !!firstTime; // first time allow show basic text, because loading animation was not loaded
     this.loaderSets = loaderSets;
     this.callBackScene = callBackScene;
-
-    
     this.isLoading = !!firstTime;
     this._progress = 0;
     this._progressTxt = [];
@@ -108,6 +106,7 @@ Scene_Loader.prototype.update = function() {
     if(!this.isLoading){
         document.title = document.title+"=>"+this.callBackScene.name;
         SceneManager.goto(this.callBackScene);
+        
     };
     //Scene_Base.prototype.update.call(this);
 };

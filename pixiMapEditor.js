@@ -1485,7 +1485,7 @@ const CAGE_MAP = STAGE.CAGE_MAP; // Store all avaibles libary
 
     //call fast save with ctrl+s
     function start_DataSavesFromKey_CTRL_S(options) {
-        //create_JsonPerma();
+        create_JsonPerma();
         create_SceneJSON();
     };
 
@@ -1501,14 +1501,12 @@ const CAGE_MAP = STAGE.CAGE_MAP; // Store all avaibles libary
         const data = {SHEETS:{}};
         for (const key in DATA) {
             const e = DATA[key];
-            if(e.meta.perma){
-                data.SHEETS[e.name] = e;
-            };
+            if(e.perma){ data.SHEETS[e.name] = e };
         };
         const fs = require('fs');
         const content = JSON.stringify(data, null, '\t'); //human read format
         fs.writeFile(`data/perma.json`, content, 'utf8', function (err) { 
-            if(err){return console.log(err) };
+            if(err){return console.log(err) }return console.log9("create_JsonPerma FINISH",data);
         });
     };
 
@@ -1542,8 +1540,7 @@ const CAGE_MAP = STAGE.CAGE_MAP; // Store all avaibles libary
         const fs = require('fs');
         const content = JSON.stringify(data, null, '\t'); //human read format
         fs.writeFile(path, content, 'utf8', function (err) { 
-            if(err){return console.log(err) }
-            console.log('complette: ', err);
+            if(err){return console.log(err)} return console.log9("create_SceneJSON FINISH",data);
         });
     };
 
