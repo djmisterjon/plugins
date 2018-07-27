@@ -399,6 +399,7 @@ _PME.prototype.startEditor = function() {
         OutlineFilterx16: new PIXI.filters.OutlineFilter (16, 0x000000, 1),
     }
     const STAGE = SceneManager._scene; 
+    console.log2('STAGE: ', STAGE);
     const DATA = this.Data2;
     const EDITOR = this.editorGui;
     const Renderer = Graphics._renderer; // ref to current renderer RMMV Graphics
@@ -409,6 +410,7 @@ _PME.prototype.startEditor = function() {
     let InMapObj = null;
     let mX = 0, mY = 0; // mosue screen
     let mMX = 0, mMY = 0; // mouse map 
+    let HoldX = 0, HoldY = 0; // mouse map 
     // scoller 
     let scrollAllowed = true;
     let ScrollX = 0;
@@ -418,6 +420,10 @@ _PME.prototype.startEditor = function() {
     // zoom 
     const Zoom = STAGE.CAGE_MAP.scale;
     const MemCoorZoom1 = new PIXI.Point(), MemCoorZoom2 = new PIXI.Point(); // for control zoom memory
+    let MouseTimeOut = null; // store mouse hold timeOut when hold click
+    let MouseHold = null; // click mouse is held ?
+
+
  
 // TODO: ENLEVER LES JAMBRE ET LES PIED DES PERSONNAGTE. POUR FAIRE DES BOULE SAUTILLANTE.
 // SEULEMENT CHEZ LES ANIMAUX SEULEMENT , IL SEMBLERAI AVOIR 2 ESPECE DIFERENTE.
@@ -661,15 +667,14 @@ const CAGE_MAP = STAGE.CAGE_MAP; // Store all avaibles libary
     };
 
     // create data checkbox with Data_Values
-    function getDataCheckBoxWith(Data_Values){
+    function getDataCheckBoxWith(OBJ, Data_Values){
+        if(OBJ.Data_CheckBox){return OBJ.Data_CheckBox};
         const Data_CheckBox = {};
         Object.keys(Data_Values).forEach(key => {
             Data_CheckBox[key] = true;
         });
         return Data_CheckBox;
     };
-
-
 
     // create multi sliders light
     function create_sliderFalloff(){
@@ -685,6 +690,7 @@ const CAGE_MAP = STAGE.CAGE_MAP; // Store all avaibles libary
     };
 
     function open_mapSetupEditor() {
+        clear_tileSheet(true,CAGE_TILESHEETS);
         iziToast.opened = true;
         document.exitPointerLock();
         iziToast.info( $PME.mapSetupEditor() );
@@ -702,7 +708,7 @@ const CAGE_MAP = STAGE.CAGE_MAP; // Store all avaibles libary
         //STEP2: refresh html with json
         //STEP3: edit html data
         let Data_Values = getDataJson(OBJ);//STEP1:  get json from obj
-        Data_CheckBox = OBJ.Data_CheckBox || getDataCheckBoxWith(Data_Values); // stock checkBox id in objet _check
+        Data_CheckBox = getDataCheckBoxWith(OBJ,Data_Values); // stock checkBox id in objet _check
         Data_Options = {}; // no props, special options case
         setHTMLWithData(Data_Values, Data_CheckBox, _jscolor, _Falloff); 
 
@@ -1077,7 +1083,7 @@ const CAGE_MAP = STAGE.CAGE_MAP; // Store all avaibles libary
         };
         CAGE_TILESHEETS.list = list;
         CAGE_TILESHEETS.addChild(...list);
-        console.log('list[0]: ', list[0].Sprites.groupName);
+
    
         // if cache not registered, compute path or copy value from cache.
       
@@ -1096,7 +1102,7 @@ const CAGE_MAP = STAGE.CAGE_MAP; // Store all avaibles libary
 
     function check_tileSheetStatus(CAGE_TILESHEETS,InLibs) {
         // if open, and same name or diff name, hide or clear
-        if(CAGE_TILESHEETS.name === InLibs.name){ return clear_tileSheet(true,CAGE_TILESHEETS,InLibs) };
+        if(CAGE_TILESHEETS.name === InLibs.name){ return clear_tileSheet(true,CAGE_TILESHEETS) };
         if(CAGE_TILESHEETS.name !== InLibs.name){ return clear_tileSheet(false,CAGE_TILESHEETS,InLibs) };
     };
 
@@ -1127,7 +1133,7 @@ const CAGE_MAP = STAGE.CAGE_MAP; // Store all avaibles libary
         CAGE_MOUSE.list = cage;
     };
 
-    // add to map new obj + Obj.Asign a copy unique of html Editor json asigned
+    // add to map new obj + Obj.Asign a copy unique of html Editor json asigned addtomap
     function add_toScene(obj) {
         const cage = create_FromTileSheet(obj.Data, obj.Sprites.groupTexureName);
         cage.Sprites.d && cage.Sprites.d.anchor.copy(obj.Sprites.d.anchor);
@@ -1135,6 +1141,7 @@ const CAGE_MAP = STAGE.CAGE_MAP; // Store all avaibles libary
         cage.DebugElements.bg.anchor.copy(obj.DebugElements.bg.anchor);
         cage.x = mMX;
         cage.y = mMY;
+        cage.DebugElements.bg.renderable = false; //TODO:
         CAGE_MAP.addChild(cage);
         CAGE_MAP.list = cage;
         cage.getBounds();
@@ -1278,6 +1285,17 @@ const CAGE_MAP = STAGE.CAGE_MAP; // Store all avaibles libary
         }
     };
 
+    function startMouseHold(active){
+        clearTimeout(MouseTimeOut);
+        MouseHold=false;
+        if(active){ // active mouse MouseHold after 160 ms
+            MouseTimeOut = setTimeout(() => {
+                HoldX = +mX, HoldY = +mY;
+                MouseHold=true;
+            }, 160);
+        };
+    };
+
 //#endregion
 
 
@@ -1286,9 +1304,16 @@ const CAGE_MAP = STAGE.CAGE_MAP; // Store all avaibles libary
 // CHECK INTERACTION MOUSE
 // └------------------------------------------------------------------------------┘
     function mousemove_Editor(event) {
+        
         if(iziToast.opened){return}; // dont use mouse when toast editor
         refreshMouse();
         InMask = check_InMask(mX,mY);
+        if(MouseHold){
+            CAGE_TILESHEETS.list.forEach(cage => {
+                cage.x+= event.movementX*0.7;//performe scroll libs mouse
+                cage.y+= event.movementY*0.7;//performe scroll libs mouse
+            });
+        };
         if(InMask){
             InLibs = check_In(CAGE_LIBRARY.list) || false;
             InTiles = !InLibs && CAGE_TILESHEETS.open && check_In(CAGE_TILESHEETS.list) || false;
@@ -1303,7 +1328,12 @@ const CAGE_MAP = STAGE.CAGE_MAP; // Store all avaibles libary
         show_previews(InLibs);
     };
 
+    function mousedown_Editor(event) {
+        startMouseHold(true); // timeOut check hold click
+    };
+
     function mouseup_Editor(event) {
+        startMouseHold(false);
         if(iziToast.opened){return  document.exitPointerLock()}; // dont use mouse when toast editor
         const _clickRight = event.button === 0;
         const clickLeft_ = event.button === 2;
@@ -1346,24 +1376,18 @@ const CAGE_MAP = STAGE.CAGE_MAP; // Store all avaibles libary
     function wheel_Editor(event) {
         if(iziToast.opened){return}; // dont use mouse when toast editor
         if(InMask && InMask === "CAGE_TILESHEETS" && CAGE_TILESHEETS.open){
-            if(event.wheelDeltaY>0){
-                CAGE_TILESHEETS.scale.x+=0.1;
-                CAGE_TILESHEETS.scale.y+=0.1;
-                CAGE_TILESHEETS.mask.scale.x+=0.1;
-                CAGE_TILESHEETS.mask.scale.y+=0.1;
-            }else{
-                if(CAGE_TILESHEETS.scale._x>0.4){ 
-                    CAGE_TILESHEETS.scale.x-=0.1; 
-                    CAGE_TILESHEETS.scale.y-=0.1;
-                    CAGE_TILESHEETS.mask.scale.x+=0.1; 
-                    CAGE_TILESHEETS.mask.scale.y+=0.1;
-                }; 
-            };
-            CAGE_TILESHEETS.list.forEach(cage => { 
+            CAGE_TILESHEETS.list.forEach(cage => {
+                if(event.wheelDeltaY>0){
+                    cage.scale.x+=0.1;
+                    cage.scale.y+=0.1;
+                }else{
+                    if(cage.scale._x>0.4){
+                        cage.scale.x-=0.1; 
+                        cage.scale.y-=0.1;
+                    }; 
+                };
                 cage.getBounds(true);
-                //cage.DebugElements.bg.getBounds()
             });
-            
         }else{
             const pos = new PIXI.Point(mX,mY);
             STAGE.CAGE_MAP.toLocal(pos, null, MemCoorZoom1);
@@ -1384,7 +1408,7 @@ const CAGE_MAP = STAGE.CAGE_MAP; // Store all avaibles libary
     function keydown_Editor(event) {
         if (event.ctrlKey && (event.key === "s" || event.key === "S")) {
             // start save Data
-            start_DataSaves();
+            return start_DataSavesFromKey_CTRL_S();
         };
         if (event.ctrlKey && (event.key === "n")) {
             // show all normals
@@ -1402,7 +1426,7 @@ const CAGE_MAP = STAGE.CAGE_MAP; // Store all avaibles libary
 
 
     document.addEventListener('mousemove', mousemove_Editor.bind(this));
-    //document.addEventListener('mousedown', mousedown_Editor);
+    document.addEventListener('mousedown', mousedown_Editor);
     document.addEventListener('mouseup',mouseup_Editor.bind(this));
     document.addEventListener('wheel', wheel_Editor);
     document.addEventListener('keydown', keydown_Editor); // change layers
@@ -1459,17 +1483,21 @@ const CAGE_MAP = STAGE.CAGE_MAP; // Store all avaibles libary
         return json;
     };
 
+    //call fast save with ctrl+s
+    function start_DataSavesFromKey_CTRL_S(options) {
+        //create_JsonPerma();
+        create_SceneJSON();
+    };
 
     function start_DataSaves(options) {
-        create_JsonPerma();
-        create_SceneJSON();
+        //create_JsonPerma();
+        //create_SceneJSON();
         //create_JsonMapData();
        // snapScreenMap();
     };
 
     function create_JsonPerma(options) {
-        // create perma json for loader,update from loader: les perma sont defenie dans 
-        // file:///C:\Users\jonle\Documents\Games\anft_1.6.1\js\plugins\core_Loader.js#L45
+        // garde le perma.json a jours, a configurer dans =>  file:///C:\Users\jonle\Documents\Games\anft_1.6.1\js\plugins\core_Loader.js#L45
         const data = {SHEETS:{}};
         for (const key in DATA) {
             const e = DATA[key];
@@ -1484,19 +1512,32 @@ const CAGE_MAP = STAGE.CAGE_MAP; // Store all avaibles libary
         });
     };
 
+    function computeSave_SCENE(STAGE) {
+        const Data_Values = getDataJson(STAGE);
+        const Data_CheckBox = getDataCheckBoxWith(STAGE, Data_Values);
+        const data = {};
+        for (const key in Data_Values) {
+            data[key] = Data_CheckBox[key] ? Data_Values[key].value : Data_Values[key].def;
+        };
+        return data;
+    };
+
+    // check all elements and add base data need for loader
+    function computeSave_SHEETS(SCENE,OBJS) {
+        const data = {};
+        if(SCENE.BackGround){
+            data[SCENE.BackGround] = $PME.Data2[SCENE.BackGround];
+        };
+        return data;
+    };
+
     // creer la list des data nessesaire
     function create_SceneJSON(options) {
         const currentScene = STAGE.constructor.name;
-        const data = {
-            SHEETS:{},
-            OBJS:[],
-            BG:null,
-        };
-        if(STAGE.Background){
-            const d = STAGE.Background.Data;
-            data.BG =  d;
-            data.SHEETS[d.name] =  d;
-        };
+        let SCENE = computeSave_SCENE(STAGE);
+        let OBJS = [];
+        let SHEETS = computeSave_SHEETS(SCENE,OBJS);
+        const data = {SCENE:SCENE,OBJS:OBJS,SHEETS:SHEETS};
         const path = `data/${currentScene}_data.json`; // Map001_data.json
         const fs = require('fs');
         const content = JSON.stringify(data, null, '\t'); //human read format

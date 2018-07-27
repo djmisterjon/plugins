@@ -24,7 +24,10 @@ loaderSet_GalaxiScene:[dataMapJson,mapSprites(diff,norm)]
 
 class _coreLoader {
     constructor () {
-        this._tmp = {}; // tmp, when loading , sore all sheet here before start Normalize structure.
+        this._tmpRes_normal = {};
+        this._tmpRes_multiPack = {};
+        this._tmpData = null; // store temp data befor normalise structure 
+        this._tmpRes = null; // store ressources for compute
         this.Data2 = {};
         this._scene = null; // asign the current sceneLoader
         this.isLoading = false; // loading status
@@ -35,7 +38,7 @@ class _coreLoader {
                 value: {
                     MapInfos:"data/MapInfos.json", // also load all maps Map###_data.json and create galaxi register
                     Perma:"data/perma.json", // perma , Enemies,cursor,loader,Avatar...
-                    //Scene_Local_data:"data/Scene_Local_data.json",
+                    Scene_Local_data:"data/Scene_Local_data.json",
                     //Scene_IntroVideo:"data/Scene_IntroVideo.json",
                     //Scene_Boot:"data/Scene_Boot.json",
                     //Scene_IntroVideo:"data/Scene_IntroVideo.json",
@@ -150,235 +153,238 @@ _coreLoader.prototype.preLoad_Json = function() {
 //└------------------------------------------------------------------------------┘
 // $Loader.load(['loaderSet',loaderSet]);
 _coreLoader.prototype.load = function(set) {
-    console.log6('_________________________________set: ', set);
+    console.log6('load_________________________________set: ', set);
+    for (const key in this.Data2) { delete this.Data2[key] }; // clear all cache when load new scene
     if(!this.loaderSet[set]){return this._scene.isLoading = false};
+    
+    this._tmpData = this.loaderSet[set].SHEETS;
+    this._tmpRes = {};
+    this._tmpRes_normal = {};
+    this._tmpRes_multiPack = {};
     const loader = new PIXI.loaders.Loader();
-    for (const key in this.loaderSet[set].SHEETS) { // L:SHEETS
-        const data = this.loaderSet[set].SHEETS[key];
-        loader.add(key, `${data.dir}/${data.base}`);
-        loader.resources[key].dataJ = data;
-        if(data.meta.normal){
-            loader.add(key+"_n", `${data.dir}/${data.name}_n.json`);
-            loader.resources[key+"_n"].dataJ =  data;
-           
-        };
+    for (const key in this._tmpData) {
+        const dataJ = this._tmpData[key];
+        loader.add(key, `${dataJ.dir}/${dataJ.base}`);
     };
+    loader.load();
 
     loader.onProgress.add((loader, res) => {
-
-        if(res.dataJ){
-            const isNormal = res.name.contains("_n");
-            const type = res.dataJ.meta.type || false;
-            //const reg = this.checkRegistryPathIntegrity(res.dataJ);
-            if(type){ // avoid use altlas .. and other files
-                if(type === "spineSheet"){
-                    Object.defineProperty(res.dataJ, "spineData", { value: res.spineData, writable:true });
-                };
-                if(type === "animationSheet"){ // use temp_
-                    Object.defineProperty(res.dataJ, "textures", { value: {} ,writable:true });
-                    Object.defineProperty(res.dataJ, "textures_n", { value: {} ,writable:true });
-                    for (const aniKey in res.dataJ.animations) {
-                        res.dataJ.textures[aniKey] = [];
-                        res.dataJ.textures_n[aniKey] = [];
-                    };
-                    res.dataJ._tempTextures = res.textures; // temporaire textures, attend d'etre classer pour Multipack ou animation
-                    res.dataJ._tempTextures_n = {}; // temporaire textures, attend d'etre classer pour Multipack ou animation
-                };
-                if(type === "tileSheet"){
-                    if(isNormal){
-                        Object.defineProperty(res.dataJ, "textures_n", { value: {} ,writable:true });
-                        res.dataJ._tempTextures_n = res.textures; // temporaire textures, attend d'etre classer pour Multipack ou animation
-                    }else{
-                        Object.defineProperty(res.dataJ, "textures", { value: {} ,writable:true });
-                        res.dataJ._tempTextures = res.textures; // temporaire textures, attend d'etre classer pour Multipack ou animation
-                    }; 
-                }
-                this._tmp[res.name] = res.dataJ;
-            };
-            
+        if(res.extension.contains("json")){
+            this.asignBase(res);
+            this._tmpRes[res.name] = res;
         };
     });
-
     loader.onComplete.add((loader, res) => {
-    // INITALISE BASIC CORE PLUGINS
-        this.combineNormalData();
-        //this.combineMultiPack();
-        this.combineTextures(); // reduce _tempTextures to texture for animation Multi pack
-        this.mergeDataTmp();
-
-
-        PIXI.utils.clearTextureCache();
-        this._scene.isLoading = false;
+        console.log('load onComplete: ');
+       this.loadMultiPack();
     });
-
-    loader.load();
 };
 
-  // trouve tous les datas avec _n  et merge avec original data (fusion) ++
-  _coreLoader.prototype.combineNormalData = function() {
-    for (const key in this._tmp) {
-        if(key.contains("_n")){ // it a normal sheets
-            const currentData = this._tmp[key];
-            const targetData =  this._tmp[key.replace("_n", "")];
-            Object.assign(targetData._tempTextures_n, currentData.textures_n); 
-            targetData.meta.normal = true;
-            targetData.base_n = this._tmp[key].base;
-            delete this._tmp[key];
-        };
+//#2 load all multiPack reference
+_coreLoader.prototype.loadMultiPack = function() {
+    const loader = new PIXI.loaders.Loader();
+    let empty = true;
+    for (const key in this._tmpData) {
+        const isMulti = key.contains("-0");
+        if(isMulti){
+            empty = false;
+            const list =  this._tmpRes[key].data.meta.related_multi_packs;
+            list.forEach(fileName => {
+                const dir = `${this._tmpData[key].dir}/${fileName}`
+                loader.add(fileName, dir);
+                loader.resources[fileName].FROM = this._tmpRes[key];
+            });
+        }
     };
+    loader.load();
+
+    loader.onProgress.add((loader, res) => {
+        res.extension.contains("json") && (this._tmpRes_multiPack[res.name] = res);
+    });
+    loader.onComplete.add((loader, res) => {
+        this.loadNormal()
+     });
+     if(empty){loader.onComplete._tail._fn()}; // force onComplete if empty;
+     
+};
+
+  //#3 load normal png
+_coreLoader.prototype.loadNormal = function() {
+    console.log('loadNormal: ');
+    const loader = new PIXI.loaders.Loader();
+    let empty = true; // if find nothing ? force jump
+    for (const key in this._tmpRes) {
+        const meta = this._tmpRes[key].data.meta;
+        if(meta && meta.normal_map){
+            empty = false;
+            const path = this._tmpRes[key].url.split("/");
+            const dir = `${path[0]}/${path[1]}/${path[2]}/${meta.normal_map}`;
+            loader.add(meta.normal_map, dir);
+            loader.resources[meta.normal_map].FROM = this._tmpRes[key];
+        }
+    };
+    for (const key in this._tmpRes_multiPack) {
+        const meta = this._tmpRes_multiPack[key].data.meta;
+        if(meta && meta.normal_map){
+            empty = false;
+            const path = this._tmpRes_multiPack[key].url.split("/");
+            const dir = `${path[0]}/${path[1]}/${path[2]}/${meta.normal_map}`;
+            loader.add(meta.normal_map, dir);
+            loader.resources[meta.normal_map].FROM = this._tmpRes_multiPack[key];
+        }
+    };
+    loader.load();
+
+    loader.onProgress.add((loader, res) => {
+        this._tmpRes_normal[res.name] = res;
+    });
+    loader.onComplete.add((loader, res) => {
+        console.log('loadNormal onComplete: ');
+        this.computeRessources();
+    });
+    if(empty){loader.onComplete._tail._fn()}; // force onComplete if empty;
+};
+
+// we have data, multipack, normal, now merging
+_coreLoader.prototype.computeRessources = function() {
+    console.log('computeRessources: ');
+    this.computeNormal();
+    this.computeMultiPack();
+    this.computeData();
+    PIXI.utils.clearTextureCache();
+    this._scene.isLoading = false;
  };
 
- _coreLoader.prototype.combineTextures = function() {
-    for (const key in this._tmp) {
-        const data = this._tmp[key];
-        if(data.meta.type !== "spineSheet"){
-             // if is animations sheets, need splits all aniamtions from pack
-            if(data.animations){
-                Object.entries(data.animations).forEach(e => {
-                    const animationName = e[0];
-                    const texturesList = e[1];
-                    const temp = [], temp_n = [];
-                    texturesList.forEach(texName => {
-                        const texture = data._tempTextures[texName];
-                        const texture_n = data._tempTextures_n[texName+"_n"];
-                        const storage = data.textures[animationName];
-                        const storage_n = data.textures_n[animationName];
-                        storage.push(texture);
-                        storage_n && storage_n.push(texture_n); // if normal
-                    });
-                });
+
+// asign base type data and normalise structures
+_coreLoader.prototype.asignBase = function(res) {
+    const type = res.spineData && "spineSheet" || res.data.animations && "animationSheet" || "tileSheet";
+    const tmpData = this._tmpData[res.name];
+    if(type==="spineSheet"){ // type spineSheet;
+        //Object.defineProperty(tmpData, "baseTextures", { value: [], writable:true }); // only for editor
+        Object.defineProperty(tmpData, "spineData", { value: {}, writable:true });
+        Object.defineProperty(tmpData, "data", { value: {}, writable:true });
+        Object.defineProperty(tmpData, "perma", { value: $Loader._permaName.contains(res.name) });
+        Object.defineProperty(tmpData, "type", { value: "spineSheet"});
+        Object.defineProperty(tmpData, "normal", { value: false, writable:true}); // TODO: need scan skin
+
+        return type;
+    };
+    if(type==="animationSheet" || type==="tileSheet"){
+        //Object.defineProperty(tmpData, "baseTextures", {value: [], writable:true }); // only for editor
+        Object.defineProperty(tmpData, "textures", { value: {} ,writable:true });
+        Object.defineProperty(tmpData, "textures_n", { value: {} ,writable:true });
+        Object.defineProperty(tmpData, "data", { value: {}, writable:true });
+        Object.defineProperty(tmpData, "perma", { value: $Loader._permaName.contains(res.name) });
+        Object.defineProperty(tmpData, "type", { value: type});
+        Object.defineProperty(tmpData, "normal", { value: false, writable:true});
+        return type;
+    };
+    return console.error("WARNING, can not find type of packages sheets! Missing meta:",res)
+};
+    
+// create Normal Textures
+_coreLoader.prototype.computeNormal = function() {
+    for (const key in this._tmpRes_normal) {
+        const res = this._tmpRes_normal[key];
+        const baseTexture = res.texture.baseTexture;
+        const textures_n = {};
+        for (const texName in  res.FROM.textures) {
+            const tex = res.FROM.textures[texName];
+            const orig = tex.orig.clone();
+            const frame = tex._frame.clone();
+            const trim = tex.trim && tex.trim.clone();
+            const rot = tex._rotate;
+            const texture = new PIXI.Texture(baseTexture, frame, orig, trim, rot); // (this.baseTexture, this.frame, this.orig, this.trim, this.rotate
+            texture.textureCacheIds = [texName];
+            textures_n[`${texName}_n`] = texture;
+        }
+        res.FROM.textures_n = textures_n;
+    };
+    delete this._tmpRes_normal;
+};
+
+// assign multiPack data to FROM original data
+_coreLoader.prototype.computeMultiPack = function() {
+    for (const key in this._tmpRes_multiPack) {
+        const ress = this._tmpRes_multiPack[key];
+
+        const textures = ress.textures;
+        const origin_textures = ress.FROM.textures;
+        Object.assign(origin_textures, textures);
+
+        const textures_n = ress.textures_n;
+        const origin_textures_n = ress.FROM.textures_n;
+        Object.assign(origin_textures_n, textures_n);
+
+        // DATA
+        const frames = ress.data.frames;
+        const origin_frames = ress.FROM.data.frames;
+        Object.assign(origin_frames, frames);
+
+        const animations = ress.data.animations;
+        const origin_animations = ress.FROM.data.animations;
+        for (const key in animations) {
+            const ani = animations[key];
+            origin_animations[key].push(...ani);
+        };
+
+        ress.FROM.children.push(ress.children[0]) // add baseTexture for editor only
+    };
+    delete this._tmpRes_multiPack;
+};
+
+_coreLoader.prototype.computeData = function() {
+    for (const key in this._tmpData) {
+        const tmpData = this._tmpData[key];
+        const tmpRes = this._tmpRes[key];
+
+        if(tmpData.type === "spineSheet"){
+            tmpData.data = tmpRes.data;
+            tmpData.spineData = tmpRes.spineData;
+        };
+
+        if(tmpData.type ==="tileSheet"){
+            Object.assign(tmpData.data, tmpRes.data);
+            if( tmpData.dirArray.contains("BG") ){
+                const texName = Object.keys(tmpRes.textures)[0];
+                Object.assign(tmpData.textures, tmpRes.textures[texName]);
+                Object.assign(tmpData.textures_n, tmpRes.textures_n[texName+"_n"]);
+                tmpData.BG = true;
             }else{
-                if(data.meta.isBG){
-                    const singleTexName = Object.keys(data._tempTextures)[0];
-                    const singleTexName_n = Object.keys(data._tempTextures_n)[0]
-                    data.textures =  data._tempTextures[singleTexName];
-                    data.textures_n =  data._tempTextures_n[singleTexName_n];
-                }else{
-                    // is tileSheets without aniamtions
-                    data.textures =  data._tempTextures;
-                    data.textures_n =  data._tempTextures_n;
-                }
-  
+                Object.assign(tmpData.textures, tmpRes.textures);
+                Object.assign(tmpData.textures_n, tmpRes.textures_n);
             };
-            delete data._tempTextures;
-            delete data._tempTextures_n;
+            tmpData.normal = !!tmpData.data.meta.normal_map; 
+
+        };
+
+        if(tmpData.type ==="animationSheet"){
+            Object.assign(tmpData.data, tmpRes.data);
+            tmpData.normal = !!tmpData.data.meta.normal_map;
+            for (const key in tmpRes.data.animations) {
+                tmpData.textures[key] = [];
+                tmpData.textures_n[key] = [];
+                const keyList = tmpRes.data.animations[key];
+                keyList.sort().forEach(keyAni => {
+                    const ani = tmpRes.textures[keyAni];
+                    const ani_n = tmpRes.textures_n[keyAni+"_n"];
+                    tmpData.textures[key].push(ani);
+                    tmpData.textures_n[key].push(ani_n);
+                });
+            };
         };
     };
- };
-
-  // merge temp data in Data2 for avaible use. Only if not existe
-  _coreLoader.prototype.mergeDataTmp = function() {
-    for (const key in this._tmp) {
-        if(!this.Data2[key]){
-            Object.defineProperty(this.Data2, key, { value: this._tmp[key] , enumerable:!this._tmp[key].meta.perma });
-        }
+    Object.assign(this.Data2, this._tmpData);
+    for (const key in this.Data2) {
+        if(this.Data2[key].perma){
+            Object.defineProperty(this.Data2, key, {
+                enumerable: false,
+            });
+        };
     };
- };
-
-_coreLoader.prototype.load_planetData = function(set) { // ["g1","p1"] : ["galaxiID","planetID"]
-// TODO: generer avec l'editeur un json pour la map, pour permet de voir comment gerer le planet loader qui load chaque mapData associer
-// egalement ajouter le path des map dans le spriteJSON via lediteur
-    const planets = this.loaderSet[set[0]][set[1]];
-    const loader = new PIXI.loaders.Loader();
-    for (const mapID in planets) {
-        const map = planets[mapID];
-        // TODO: PRENDRE VIA LE JSON GENERER DU MAP EDITOR POUR LES PARRALAXE
-        const bgName = map.parallaxName;
-        if(!bgName){continue};
-        const bgMap_d = `${map.parallaxName}_d`;
-        const bgMap_n = `${map.parallaxName}_n`;
-        //const regPath = [_planet, _bg, mapID];
-        loader.add(bgMap_d, `data2/_planet/p1/bg/${bgMap_d}.png`);
-        loader.add(bgMap_n, `data2/_planet/p1/bg/${bgMap_n}.png`);
-        loader.resources[bgMap_d].mapID = mapID;
-        loader.resources[bgMap_n].mapID = mapID;
-        loader.resources[bgMap_d].dataMap = map;
-        loader.resources[bgMap_n].dataMap = map;
-        loader.resources[bgMap_n].normal = true;
-        
-    };
-    loader.load();
-    loader.onProgress.add((loader, res) => {
-        !(this._planet._bg[res.mapID]) && (this._planet._bg[res.mapID] = {});
-        if (res.normal) {
-            this._planet._bg[res.mapID].texture_n = res.texture;
-        }else{
-            this._planet._bg[res.mapID].texture = res.texture;
-        }
-    });
-
-    loader.onComplete.add((loader, res) => {
-        this.isLoading = false;
-    });
-  
-};
-
-
-_coreLoader.prototype.checkRegistryPathIntegrity = function(data) { // from [dirArray[0],dirArray[1],dirArray.name]
-    // check l'integity sur 3 niveau, construire objet auto
-    const path = data.dirArray;
-    !this[path[0]] && (this[path[0]] = {});
-    !this[path[0]][path[1]] && (this[path[0]][path[1]] = {});
-    !this[path[0]][path[1]][path[2]] && (this[path[0]][path[1]][path[2]] = {});
-    return this[path[0]][path[1]][path[2]];
-};
-
-// ┌-----------------------------------------------------------------------------┐
-// COMPUTE SHEETSTYPE
-//└------------------------------------------------------------------------------┘
-
-_coreLoader.prototype.computeFromType = function(res) {
-    // check type => return build essential data;
-    switch (res.dataFromSet.sheetType) {
-        case "animationSheets": this.compute_animationSheets(res); break;
-        case "spriteSheets": this.compute_spriteSheets(res); break;
-        case "spineSheets": this.compute_spineSheets(res); break;
-        case "sprite": this.compute_sprites(res); break;
-        case "video": this.compute_video(res); break;
-    };
-};
-
-_coreLoader.prototype.compute_animationSheets = function(res) {
-    const array = res.isNormal && res.reg.textures_n || res.reg.textures;
-    for( let texture in res.textures ) {
-        array.push(res.textures[texture]);
-    };
-    res.reg.dataFromSet = res.dataFromSet;
-};
-
-_coreLoader.prototype.compute_spineSheets = function(res) {
-    res.reg.spineData = res.spineData;
-    res.reg.dataFromSet = res.dataFromSet;
-};
-
-_coreLoader.prototype.compute_sprites = function(res) {
-    res.isNormal && (res.reg.texture_n = res.texture) || (res.reg.texture = res.texture)
-    res.reg.dataFromSet = res.dataFromSet;
-};
-
-_coreLoader.prototype.compute_video = function(res) {
-    res.reg.data = res.data;
-};
-
-// splitter used for split multi aniamtion name in a altas
-_coreLoader.prototype.splitTexturesByName = function(res) {
-    res.dataFromSet.splitter.forEach(splitName => {
-        !(res.reg["textures"+splitName]) && (res.reg["textures"+splitName] = []); // create reg. if not exist
-        !(res.reg["textures"+splitName+"_n"]) && (res.reg["textures"+splitName+"_n"] = []); // create reg. if not exist
-        res.reg.textures_n.forEach(texture => {
-            if(texture.textureCacheIds[0].indexOf(splitName+"_n")>-1){
-                res.reg["textures"+splitName+"_n"].push(texture);
-            };
-        });
-        res.reg.textures.forEach(texture => {
-            if(texture.textureCacheIds[0].indexOf(splitName)>-1){
-                res.reg["textures"+splitName].push(texture);
-            };
-        });
-    });
-    res.reg.textures = [];
-    res.reg.textures_n = [];
- 
+    delete this._tmpData;
+    delete this._tmpRes;
 };
 
 

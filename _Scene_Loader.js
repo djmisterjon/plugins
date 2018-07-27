@@ -108,11 +108,7 @@ Scene_Loader.prototype.update = function() {
     if(!this.isLoading){
         document.title = document.title+"=>"+this.callBackScene.name;
         SceneManager.goto(this.callBackScene);
-        
-    }
-
-
-    
+    };
     //Scene_Base.prototype.update.call(this);
 };
 

@@ -20,7 +20,7 @@ Scene_Local.prototype = Object.create(Scene_Base.prototype);
 Scene_Local.prototype.constructor = Scene_Local;
 
 Scene_Local.prototype.initialize = function(loaderSets,callBackScene,firstTime) {
-    Scene_Base.prototype.initialize.call(this);
+    Scene_Base.prototype.initialize.call(this,"Scene_Local_data"); // pass loaderset for setup Scene ambiant
     this.mX = 0;
     this.mY = 0;
     this.currentHoverFlag = null; // when mouse are hover a flag
@@ -28,8 +28,8 @@ Scene_Local.prototype.initialize = function(loaderSets,callBackScene,firstTime) 
 };
 
 Scene_Local.prototype.create = function() {
-    const dat = $Loader.loaderSet.Scene_Local_data;
-    this.createBackground(null); //TODO:
+    const bgName = $Loader.loaderSet.Scene_Local_data.SCENE.BackGround;
+    this.createBackground(bgName); //TODO:
     //this.createLocalFlags();
     //this.createTexts();
     //this.createSpineAvatar();

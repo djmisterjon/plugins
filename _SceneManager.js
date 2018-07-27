@@ -144,7 +144,7 @@ SceneManager.updateScene = function() {
 // ┌-----------------------------------------------------------------------------┐
 // SCENE BASE 
 //└------------------------------------------------------------------------------┘
-Scene_Base.prototype.initialize = function() {
+Scene_Base.prototype.initialize = function(loaderSet) {
     Stage.prototype.initialize.call(this);
     this._active = false;
     this._fadeSign = 0;
@@ -154,7 +154,7 @@ Scene_Base.prototype.initialize = function() {
     // improtan props
     this.Background = null;
     this.SpritesNoEvent = []; // element no interactions
-
+    this.loaderSet = loaderSet;
     this.asignDisplayGroup();
     this.create_Cages();
 };
@@ -170,8 +170,9 @@ Scene_Base.prototype.asignDisplayGroup = function() {
         this.addChild(layersGroup[i]);
     };
     //http://pixijs.io/pixi-lights/docs/PIXI.lights.PointLight.html
-    this.light_Ambient = new PIXI.lights.AmbientLight(0xffffff, 0.8); // the general ambiance from sun and game clock (affect all normalGroup)
-    this.light_sunScreen =  new PIXI.lights.PointLight(0xffffff,3); // the sceen FX sun
+    const dataScene = this.loaderSet && $Loader.loaderSet[this.loaderSet].SCENE || {color:0xffffff, brightness:1};
+    this.light_Ambient = new PIXI.lights.AmbientLight(dataScene.color, dataScene.brightness); // the general ambiance from sun and game clock (affect all normalGroup)
+    this.light_sunScreen =  new PIXI.lights.PointLight(0xffffff,3); // the sceen FX sun TODO: in Editor
     this.light_sunScreen.position.set(0, 0);
     this.addChild(this.light_Ambient,this.light_sunScreen);
 };
