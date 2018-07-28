@@ -393,7 +393,6 @@ _PME.prototype.startEditor = function() {
     // └------------------------------------------------------------------------------┘
     const SCENEJSONSETUP = {bg:null}; // base configuration for the scene.ambiant, BG ....
     const CACHETILESSORT = {}; //CACHE FOR PATHFINDING ONCE
-    const REGISTER = []; // REGISTER OBJET ON MAPS, ADDED WITH EDITOR SESSIONS
     const FILTERS = {
         OutlineFilterx4: new PIXI.filters.OutlineFilter (4, 0x000000, 1),
         OutlineFilterx16: new PIXI.filters.OutlineFilter (16, 0x000000, 1),
@@ -689,6 +688,21 @@ const CAGE_MAP = STAGE.CAGE_MAP; // Store all avaibles libary
         return {kc:kc,kl:kl,kq:kq};
     };
 
+    // TODO: double click obj sur map pour editer ces props, et click sur icons eventMode pour editer ces composant interactif
+    // when right click on a tiles
+    function open_tileSetupEditor(InMapObj) {
+        clear_tileSheet(true,CAGE_TILESHEETS);
+        iziToast.opened = true;
+        document.exitPointerLock();
+        iziToast.info( $PME.tileSetupEditor(InMapObj) );
+        // show tint colors pickers
+        /*const _jscolor = new jscolor(document.getElementById("color")); // for case:id="_color" slider:id="color"
+        _jscolor.zIndex = 9999999;
+        const _Falloff = create_sliderFalloff(); // create slider html for pixiHaven*/
+        //start_mapSetupEditor(_jscolor,_Falloff, STAGE);
+    };
+
+    // open from buttons custom STAGE SETUP
     function open_mapSetupEditor() {
         clear_tileSheet(true,CAGE_TILESHEETS);
         iziToast.opened = true;
@@ -1143,10 +1157,9 @@ const CAGE_MAP = STAGE.CAGE_MAP; // Store all avaibles libary
         cage.y = mMY;
         cage.DebugElements.bg.renderable = false; //TODO:
         CAGE_MAP.addChild(cage);
-        CAGE_MAP.list = cage;
-        cage.getBounds();
-        //getBoundsMap(cage); // with camera factor
-        REGISTER.push(cage);
+        cage.getBounds();  //getBoundsMap(cage); // with camera factor
+        // register
+        STAGE.SpritesNoEvent.push(cage); // element no interactions
     };
 
     function execute_buttons(InButtons) {
@@ -1208,6 +1221,9 @@ const CAGE_MAP = STAGE.CAGE_MAP; // Store all avaibles libary
             sprite._filters = [ FILTERS.OutlineFilterx4 ]; // thickness, color, quality
             sprite.scale.set(1.2,-1.2);
             cage.color.a = 1;
+        }else if(cage.parent.name === "CAGE_MAP"){ // it a objs on map
+            cage.DebugElements.bg.renderable = true;
+            cage.DebugElements.bg._filters = [ FILTERS.OutlineFilterx16 ];
         }else{
             const sprite =  cage.Sprites.t ||  cage.Sprites.d ||  cage.Sprites.s;
             sprite._filters = [ FILTERS.OutlineFilterx4 ]; // thickness, color, quality
@@ -1228,7 +1244,10 @@ const CAGE_MAP = STAGE.CAGE_MAP; // Store all avaibles libary
                 sprite._filters = null; // thickness, color, quality
                 sprite.scale.set(1,-1);
                 cage.color.a = 0.7;
-            }else{
+            }else if(cage.parent.name === "CAGE_MAP"){ // it a objs on map
+                cage.DebugElements.bg.renderable = false;
+                cage.DebugElements.bg._filters = null;
+            }else{ // it libs obj
                 const sprite =  cage.Sprites.t ||  cage.Sprites.d ||  cage.Sprites.s;
                 sprite._filters = null; // thickness, color, quality
                 cage.DebugElements.bg._filters = null;
@@ -1260,8 +1279,8 @@ const CAGE_MAP = STAGE.CAGE_MAP; // Store all avaibles libary
             };
         };
         // clear
-        if(inValue && inValue!==(InLibs||InTiles)){clearFilters(list,i)};
-        if(!inValue && (InLibs||InTiles)){ clearFilters(list) };
+        if(inValue && inValue!==(InLibs||InTiles||InMapObj)){clearFilters(list,i)};
+        if(!inValue && (InLibs||InTiles||InMapObj)){ clearFilters(list) };
         return inValue;
     };
 
@@ -1304,7 +1323,6 @@ const CAGE_MAP = STAGE.CAGE_MAP; // Store all avaibles libary
 // CHECK INTERACTION MOUSE
 // └------------------------------------------------------------------------------┘
     function mousemove_Editor(event) {
-        
         if(iziToast.opened){return}; // dont use mouse when toast editor
         refreshMouse();
         InMask = check_InMask(mX,mY);
@@ -1317,11 +1335,15 @@ const CAGE_MAP = STAGE.CAGE_MAP; // Store all avaibles libary
         if(InMask){
             InLibs = check_In(CAGE_LIBRARY.list) || false;
             InTiles = !InLibs && CAGE_TILESHEETS.open && check_In(CAGE_TILESHEETS.list) || false;
-            //InMapObj = (!InLibs&&!InTiles) && checkInMapRegister(REGISTER) || false;
         }else{
             InLibs = false, InTiles = false;
             InButtons = !InLibs && !InTiles &&  check_In(ButtonsSlots) || false;
+            if(event.ctrlKey && !InButtons){ // check if on a map objs elements
+                // TODO: USE + ALT FOR REVERSE CHECK
+                InMapObj = check_In(STAGE.SpritesNoEvent) || false;
+            };
         };
+
         if(InTiles){
             checkAnchor(InTiles);
         };
@@ -1343,16 +1365,29 @@ const CAGE_MAP = STAGE.CAGE_MAP; // Store all avaibles libary
             if(CAGE_MOUSE.list){ // 
                 return add_toScene(CAGE_MOUSE.list); // copy the current mouse and add to map new obj
             }
-            if(InLibs){
+            if(InLibs){ // in bottom library
                 return show_tileSheet(InLibs) //|| hide_tileSheet();
             }
-            if (InTiles) {
+            if (InTiles) { // in Right library tile
                 return add_toMouse(InTiles);
             }
-            if(InButtons){
+            if(InButtons){ // in buttons
                 return execute_buttons(InButtons);
             }
-            if(InMapObj){
+            if (InMapObj) { // in Right library tile
+                // focus position objs
+                ScrollX = mX-1400;
+                ScrollY = mY-(900);
+                return open_tileSetupEditor(InMapObj);
+            }
+        };
+
+        if(clickLeft_){// => leftClick
+            if(CAGE_MOUSE.list){
+                CAGE_MAP.removeChild(CAGE_MOUSE.list);
+                return CAGE_MOUSE.list = null;
+            }
+            if(InMapObj){//TODO: delete the current objsmap selected
                 CAGE_MOUSE.currentSprite = InMapObj;
                 REGISTER.indexOf(InMapObj);
                 const index =  REGISTER.indexOf(InMapObj);
@@ -1361,13 +1396,6 @@ const CAGE_MAP = STAGE.CAGE_MAP; // Store all avaibles libary
                 }
                 InMapObj = null;
             };
-        };
-
-        if(clickLeft_){// => leftClick
-            if(CAGE_MOUSE.list){
-                CAGE_MAP.removeChild(CAGE_MOUSE.list);
-                CAGE_MOUSE.list = null;
-            }
         };
     };
 
@@ -1489,13 +1517,6 @@ const CAGE_MAP = STAGE.CAGE_MAP; // Store all avaibles libary
         create_SceneJSON();
     };
 
-    function start_DataSaves(options) {
-        //create_JsonPerma();
-        //create_SceneJSON();
-        //create_JsonMapData();
-       // snapScreenMap();
-    };
-
     function create_JsonPerma(options) {
         // garde le perma.json a jours, a configurer dans =>  file:///C:\Users\jonle\Documents\Games\anft_1.6.1\js\plugins\core_Loader.js#L45
         const data = {SHEETS:{}};
@@ -1510,6 +1531,21 @@ const CAGE_MAP = STAGE.CAGE_MAP; // Store all avaibles libary
         });
     };
 
+    // creer la list des data nessesaire
+    function create_SceneJSON(options) {
+        const currentScene = STAGE.constructor.name;
+        let SCENE = computeSave_SCENE(STAGE);
+        let OBJS = computeSave_OBJ(STAGE.CAGE_MAP);
+        let SHEETS = computeSave_SHEETS(SCENE,OBJS);
+        const data = {SCENE:SCENE,OBJS:OBJS,SHEETS:SHEETS};
+        const path = `data/${currentScene}_data.json`; // Map001_data.json
+        const fs = require('fs');
+        //const content = JSON.stringify(data, null, '\t'); //human read format
+        fs.writeFile(path, content, 'utf8', function (err) { 
+            if(err){return console.log(err)} return console.log9("create_SceneJSON FINISH",data);
+        });
+    };
+    
     function computeSave_SCENE(STAGE) {
         const Data_Values = getDataJson(STAGE);
         const Data_CheckBox = getDataCheckBoxWith(STAGE, Data_Values);
@@ -1520,6 +1556,11 @@ const CAGE_MAP = STAGE.CAGE_MAP; // Store all avaibles libary
         return data;
     };
 
+    function computeSave_OBJ(CAGE_MAP) {
+        console.log('CAGE_MAP: ', CAGE_MAP);
+        return [];
+    };
+
     // check all elements and add base data need for loader
     function computeSave_SHEETS(SCENE,OBJS) {
         const data = {};
@@ -1527,21 +1568,6 @@ const CAGE_MAP = STAGE.CAGE_MAP; // Store all avaibles libary
             data[SCENE.BackGround] = $PME.Data2[SCENE.BackGround];
         };
         return data;
-    };
-
-    // creer la list des data nessesaire
-    function create_SceneJSON(options) {
-        const currentScene = STAGE.constructor.name;
-        let SCENE = computeSave_SCENE(STAGE);
-        let OBJS = [];
-        let SHEETS = computeSave_SHEETS(SCENE,OBJS);
-        const data = {SCENE:SCENE,OBJS:OBJS,SHEETS:SHEETS};
-        const path = `data/${currentScene}_data.json`; // Map001_data.json
-        const fs = require('fs');
-        const content = JSON.stringify(data, null, '\t'); //human read format
-        fs.writeFile(path, content, 'utf8', function (err) { 
-            if(err){return console.log(err)} return console.log9("create_SceneJSON FINISH",data);
-        });
     };
 
     // creer la list des data nessesaire
